@@ -20,7 +20,10 @@ def base_context(tmp_path):
     work_dir = tmp_path / "work"
     work_dir.mkdir()
     return {
-        "file": {"name": "audio.mp3", "stem": "audio", "ext": ".mp3", "path": "/tmp/audio.mp3", "hash": "h", "size": 5000},
+        "file": {
+            "name": "audio.mp3", "stem": "audio", "ext": ".mp3",
+            "path": "/tmp/audio.mp3", "hash": "h", "size": 5000,
+        },
         "env": {},
         "steps": {},
         "_work_dir": str(work_dir),
@@ -32,7 +35,12 @@ class TestAudioInfoAction:
         from mediariver.actions.audio.info import AudioInfoAction
 
         probe_output = json.dumps({
-            "streams": [{"codec_type": "audio", "codec_name": "mp3", "bit_rate": "320000", "sample_rate": "44100", "channels": 2}],
+            "streams": [
+                {
+                    "codec_type": "audio", "codec_name": "mp3",
+                    "bit_rate": "320000", "sample_rate": "44100", "channels": 2,
+                },
+            ],
             "format": {"duration": "180.5"},
         })
         mock_executor.run.return_value = CommandResult(returncode=0, stdout=probe_output, stderr="")

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from mediariver.actions.base import ActionResult, BaseAction
 from mediariver.actions.executor import CommandExecutor

@@ -2,8 +2,12 @@
 
 # Audio actions
 import mediariver.actions.audio.convert  # noqa: F401
+import mediariver.actions.audio.duration_check  # noqa: F401
+import mediariver.actions.audio.embed_art  # noqa: F401
+import mediariver.actions.audio.hls  # noqa: F401
 import mediariver.actions.audio.info  # noqa: F401
 import mediariver.actions.audio.normalize  # noqa: F401
+import mediariver.actions.audio.tag  # noqa: F401
 
 # Filesystem actions
 import mediariver.actions.copy  # noqa: F401

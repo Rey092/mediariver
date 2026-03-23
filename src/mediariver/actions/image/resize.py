@@ -42,10 +42,7 @@ class ImageResizeAction(BaseAction):
         h = params.height
 
         # Build geometry string
-        if h is not None:
-            geometry = f"{w}x{h}"
-        else:
-            geometry = f"{w}x"
+        geometry = f"{w}x{h}" if h is not None else f"{w}x"
 
         args = [input_path, "-filter", params.filter]
 

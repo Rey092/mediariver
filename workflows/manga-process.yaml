@@ -1,0 +1,102 @@
+name: manga-process
+description: "Auto-crop borders, upscale, optimize to WebP/AVIF, generate thumbnails for manga/pornhwa pages"
+
+connections:
+  local:
+    type: local
+  output:
+    type: s3
+    bucket: "{{env.S3_BUCKET}}"
+    prefix: images/manga/
+
+watch:
+  connection: local
+  path: /media/incoming/manga
+  extensions: [.jpg, .jpeg, .png, .webp, .bmp, .tiff]
+  poll_interval: 15s
+
+flow:
+  - id: info
+    action: image.info
+    input: "{{file.path}}"
+
+  - id: pixel_guard
+    action: image.pixel_check
+    input: "{{file.path}}"
+    params:
+      min_pixels: 10000
+    on_failure: abort
+
+  - id: crop
+    action: image.crop
+    input: "{{file.path}}"
+    params:
+      mode: auto
+      auto_color: detect
+
+  - id: upscale
+    action: image.upscale
+    input: "{{steps.crop.output}}"
+    if: "{{steps.info.width < 1200}}"
+    on_failure: skip
+    params:
+      engine: realesrgan
+      scale: 2
+      denoise: 1
+
+  - id: optimize_webp
+    action: image.optimize
+    input: "{{steps.upscale.output or steps.crop.output}}"
+    params:
+      engine: cwebp
+      quality: 85
+
+  - id: optimize_avif
+    action: image.optimize
+    input: "{{steps.upscale.output or steps.crop.output}}"
+    params:
+      engine: cavif
+      quality: 70
+
+  - id: thumbnail
+    action: image.resize
+    input: "{{steps.optimize_webp.output}}"
+    params:
+      width: 400
+      fit: contain
+
+  - id: strip
+    action: shell
+    params:
+      command: "echo"
+      args: ["metadata strip placeholder"]
+
+  - id: upload_webp
+    action: copy
+    params:
+      from: "{{steps.optimize_webp.output}}"
+      to: "output://{{file.stem}}/page.webp"
+
+  - id: upload_avif
+    action: copy
+    params:
+      from: "{{steps.optimize_avif.output}}"
+      to: "output://{{file.stem}}/page.avif"
+
+  - id: upload_thumb
+    action: copy
+    params:
+      from: "{{steps.thumbnail.output}}"
+      to: "output://{{file.stem}}/thumb.webp"
+
+  - id: notify
+    action: http.post
+    params:
+      url: "{{env.BACKEND_URL}}/api/internal/media/page/{{file.stem}}/ready"
+      body:
+        webp: "{{file.stem}}/page.webp"
+        avif: "{{file.stem}}/page.avif"
+        thumbnail: "{{file.stem}}/thumb.webp"
+        width: "{{steps.info.width}}"
+        height: "{{steps.info.height}}"
+        orientation: "{{steps.info.orientation}}"

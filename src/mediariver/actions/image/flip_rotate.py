@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Literal, Union
+from typing import Any, Literal
 
 from pydantic import BaseModel
 
@@ -14,7 +14,7 @@ from mediariver.actions.registry import register_action
 
 class ImageFlipRotateParams(BaseModel):
     flip: Literal["horizontal", "vertical", "none"] = "none"
-    rotate: Union[Literal[0, 90, 180, 270, "exif-auto"], int] = 0
+    rotate: Literal[0, 90, 180, 270, "exif-auto"] | int = 0
 
 
 @register_action("image.flip_rotate")

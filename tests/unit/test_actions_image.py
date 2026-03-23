@@ -19,7 +19,10 @@ def base_context(tmp_path):
     work_dir = tmp_path / "work"
     work_dir.mkdir()
     return {
-        "file": {"name": "page.jpg", "stem": "page", "ext": ".jpg", "path": "/tmp/page.jpg", "hash": "h", "size": 50000},
+        "file": {
+            "name": "page.jpg", "stem": "page", "ext": ".jpg",
+            "path": "/tmp/page.jpg", "hash": "h", "size": 50000,
+        },
         "env": {},
         "steps": {},
         "_work_dir": str(work_dir),

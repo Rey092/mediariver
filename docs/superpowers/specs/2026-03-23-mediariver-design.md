@@ -140,7 +140,7 @@ mediariver/
 |-------|------|----------|---------|-------------|
 | `id` | string | yes | — | Unique step identifier |
 | `action` | string | yes | — | Dotted action name from registry |
-| `input` | string | no | — | Primary input path (Jinja2 template) |
+| `input` | string | no | — | Primary input path (Jinja2 template). Optional — some actions (e.g., `copy`, `http.post`) define their own source in `params` |
 | `if` | string | no | — | Condition expression, skip if falsy |
 | `on_failure` | enum | no | `abort` | `abort` / `skip` / `retry` |
 | `max_retries` | int | no | `3` | Max retry attempts (only with `on_failure: retry`) |
@@ -194,7 +194,7 @@ flow:
 
   - id: normalize
     action: video.normalize_audio
-    input: "{{file.path}}"
+    input: "{{steps.crop.output}}"   # use cropped video to keep audio in sync with video track
     params:
       target_i: -16
       target_tp: -1.5
@@ -287,19 +287,21 @@ Each step has access to a context dict that grows as the pipeline progresses:
             "output": "/tmp/probe.json",
             "width": 1920,
             "height": 1080,
-            "duration": 120.5,
-            "duration_ms": 4500,
+            "duration": 120.5,      # seconds (float)
+            "duration_ms": 120500,   # milliseconds (int)
         },
         "crop": {
             "status": "done",
             "output": "/tmp/video_cropped.mp4",
-            "duration_ms": 4500,
+            "duration_ms": 3200,     # wall-clock time of the crop operation
         },
     }
 }
 ```
 
-Conditions like `if: "{{steps.probe.width > 0}}"` are evaluated against this context via Jinja2.
+### Condition Evaluation
+
+The `if` field value is rendered as a Jinja2 template, producing a string. The engine evaluates the result as truthy/falsy: empty string, `"false"`, `"False"`, `"0"`, `"None"`, `""` are falsy; everything else is truthy. Example: `if: "{{steps.probe.width > 0}}"` renders to `"True"` or `"False"`.
 
 ### Error Handling
 
@@ -307,7 +309,7 @@ Each step declares its failure strategy:
 
 - `abort` (default) — stop pipeline for this file, mark as `failed`
 - `skip` — mark step as `skipped`, continue to next step. Context gets `status: "skipped"` and no `output`
-- `retry` — retry up to `max_retries` times with `retry_delay` between attempts
+- `retry` — retry up to `max_retries` times with `retry_delay` between attempts. Step-level retries are tracked ephemerally during the run (not persisted). The `attempts` field in `ProcessedFile` tracks file-level processing attempts (how many times the runner has picked up this file), used for the watcher's retry-from-`current_step` logic
 
 ## Action System
 
@@ -373,7 +375,8 @@ executor.run(
 - `video.thumbnail` — frame extraction, grid/sprite thumbnails
 - `shell` — arbitrary shell command
 - `docker` — arbitrary container execution
-- `http.post` — webhook/API callback
+- `http.post` — webhook/API callback (JSON body only, no file upload)
+- `http.get` — fetch remote resource, save to path
 
 **v0.2.0:**
 - `audio.info` — ffprobe: codec, bitrate, sample rate, channels, duration
@@ -423,6 +426,18 @@ builders = {
 
 Connection config from YAML is Jinja2-resolved (so `{{env.S3_BUCKET}}` works), then passed to the builder. Cross-connection copies use `fs.copy.copy_file()`.
 
+### Path Resolution
+
+Actions that accept filesystem paths (e.g., `copy`, `move`, `delete`) support a `connection://path` URI format:
+
+- `output://videos/file.mp4` → resolves to the `output` connection's FS object at path `videos/file.mp4`
+- `local:///media/incoming/video.mp4` → resolves to the `local` connection
+- A bare path with no `://` prefix defaults to the `local` connection (or the workflow's `watch.connection` if no `local` connection is defined)
+
+The URI is parsed by splitting on the first `://`. The left part is the connection name (looked up in the workflow's `connections` map), and the right part is the relative path within that FS. The `copy` action uses this to open source and destination FS objects and call `fs.copy.copy_file()` across them.
+
+`input` at the step level is always a local filesystem path (the file being processed). Connection URIs are only used inside `params` for actions that explicitly support them.
+
 ## State (SQLAlchemy)
 
 ### Models
@@ -435,9 +450,9 @@ class ProcessedFile(Base):
     file_path: Mapped[str]
     file_hash: Mapped[str]             # blake3
     file_size: Mapped[int]
-    status: Mapped[str]                # pending | running | done | failed | skipped
+    status: Mapped[str]                # pending | running | done | failed
     current_step: Mapped[str | None]
-    step_results: Mapped[dict]         # JSON column
+    step_results: Mapped[dict]         # JSON column, shape: {"step_id": {"status": "done|failed|skipped", "output": "/path/...", "duration_ms": 123, "error": "...", ...}}
     error: Mapped[str | None]
     attempts: Mapped[int] = 0
     created_at: Mapped[datetime]
@@ -461,7 +476,7 @@ Default: SQLite at `~/.mediariver/state.db`. Override via `--database-url` or `M
 ## CLI
 
 ```
-mediariver run [--workflows-dir PATH] [--database-url URL]
+mediariver run [--workflows-dir PATH] [--database-url URL] [--log-level debug|info|warning|error]
     Load all YAML specs, validate, start watchers, run engine loop.
 
 mediariver run <workflow-name>
@@ -480,14 +495,24 @@ mediariver reset <workflow-name> [--status STATUS]
     Clear state (all or filtered by status).
 ```
 
+## Working Directory
+
+Each file run gets an isolated working directory for intermediate files:
+
+- Location: `~/.mediariver/work/<workflow_name>/<file_hash>/`
+- Override via `--work-dir` or `MEDIARIVER_WORK_DIR` env var
+- Actions write intermediate outputs here (cropped video, normalized audio, etc.)
+- Docker containers mount this directory as `/work`
+- Cleanup policy: deleted on successful completion. Kept on failure for debugging. `mediariver reset` cleans up associated work dirs.
+
 ## Watcher
 
 Polling-based directory watcher:
 
 1. For each workflow, open the FS connection for `watch.connection`
 2. List files in `watch.path`, filter by `watch.extensions`
-3. For each matching file, compute blake3 hash
-4. Check state DB — skip if already processed or running
+3. For each matching file, check state DB by `(workflow_name, file_path)` as fast path — skip if already known
+4. For new files, compute blake3 hash and check by `(workflow_name, file_hash)` — skip if already processed
 5. Queue for processing
 6. Sleep `watch.poll_interval`
 
@@ -535,7 +560,7 @@ dev = [
     "mypy>=1.10",
     "minio>=7.2",
 ]
-ftp = ["fs.opener"]         # v0.4.0
+ftp = []                    # v0.4.0 — FTP is built into fs>=2.4
 sftp = ["fs.sshfs>=1.0"]   # v0.4.0
 ```
 

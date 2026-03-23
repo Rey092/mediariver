@@ -94,3 +94,53 @@ class TestImageResizeAction:
         result = action.run(base_context, params, mock_executor, resolved_input="/tmp/page.jpg")
 
         assert result.status == "done"
+
+
+class TestImageCropAction:
+    def test_auto_crop(self, mock_executor, base_context):
+        from mediariver.actions.image.crop import ImageCropAction
+
+        action = ImageCropAction()
+        params = action.params_model(mode="auto", auto_color="detect")
+        result = action.run(base_context, params, mock_executor, resolved_input="/tmp/page.jpg")
+
+        assert result.status == "done"
+        args = mock_executor.run.call_args.kwargs.get("args", [])
+        assert "-trim" in args
+
+    def test_manual_crop(self, mock_executor, base_context):
+        from mediariver.actions.image.crop import ImageCropAction
+
+        action = ImageCropAction()
+        params = action.params_model(mode="manual", rect={"x": 10, "y": 20, "w": 500, "h": 700})
+        result = action.run(base_context, params, mock_executor, resolved_input="/tmp/page.jpg")
+
+        assert result.status == "done"
+        args = mock_executor.run.call_args.kwargs.get("args", [])
+        assert "-crop" in args
+
+
+class TestImageOptimizeAction:
+    def test_optimize_webp(self, mock_executor, base_context):
+        from mediariver.actions.image.optimize import ImageOptimizeAction
+
+        action = ImageOptimizeAction()
+        params = action.params_model(engine="cwebp", quality=85)
+        result = action.run(base_context, params, mock_executor, resolved_input="/tmp/page.jpg")
+
+        assert result.status == "done"
+        mock_executor.run.assert_called_once()
+
+
+class TestImageUpscaleAction:
+    def test_realesrgan_upscale(self, mock_executor, base_context):
+        from mediariver.actions.image.upscale import ImageUpscaleAction
+
+        action = ImageUpscaleAction()
+        params = action.params_model(engine="realesrgan", scale=2)
+        result = action.run(base_context, params, mock_executor, resolved_input="/tmp/page.jpg")
+
+        assert result.status == "done"
+        mock_executor.run.assert_called_once()
+        call_kwargs = mock_executor.run.call_args.kwargs
+        assert call_kwargs.get("strategy") == "docker"

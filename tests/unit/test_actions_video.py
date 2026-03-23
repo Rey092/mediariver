@@ -149,3 +149,66 @@ class TestVideoThumbnailAction:
 
         assert result.status == "done"
         mock_executor.run.assert_called_once()
+
+
+class TestVideoUpscaleAction:
+    def test_dandere2x_upscale(self, mock_executor, base_context):
+        from mediariver.actions.video.upscale import VideoUpscaleAction
+
+        action = VideoUpscaleAction()
+        params = action.params_model(engine="dandere2x", scale=2, gpu=True)
+        result = action.run(base_context, params, mock_executor, resolved_input="/tmp/video.mp4")
+
+        assert result.status == "done"
+        mock_executor.run.assert_called_once()
+
+    def test_lanczos_upscale(self, mock_executor, base_context):
+        from mediariver.actions.video.upscale import VideoUpscaleAction
+
+        action = VideoUpscaleAction()
+        params = action.params_model(engine="lanczos", scale=2)
+        result = action.run(base_context, params, mock_executor, resolved_input="/tmp/video.mp4")
+
+        assert result.status == "done"
+
+
+class TestVideoPreviewAction:
+    def test_creates_gif_preview(self, mock_executor, base_context):
+        from mediariver.actions.video.preview import VideoPreviewAction
+
+        action = VideoPreviewAction()
+        params = action.params_model(format="gif", duration="3s", fps=10, width=480)
+        result = action.run(base_context, params, mock_executor, resolved_input="/tmp/video.mp4")
+
+        assert result.status == "done"
+        assert result.output.endswith(".gif")
+
+    def test_creates_webp_preview(self, mock_executor, base_context):
+        from mediariver.actions.video.preview import VideoPreviewAction
+
+        action = VideoPreviewAction()
+        params = action.params_model(format="webp", duration="5s")
+        result = action.run(base_context, params, mock_executor, resolved_input="/tmp/video.mp4")
+
+        assert result.output.endswith(".webp")
+
+
+class TestVideoExtractAudioAction:
+    def test_extract_audio_copy(self, mock_executor, base_context):
+        from mediariver.actions.video.extract_audio import VideoExtractAudioAction
+
+        action = VideoExtractAudioAction()
+        params = action.params_model(stream=0, codec="copy")
+        result = action.run(base_context, params, mock_executor, resolved_input="/tmp/video.mp4")
+
+        assert result.status == "done"
+        mock_executor.run.assert_called_once()
+
+    def test_extract_audio_aac(self, mock_executor, base_context):
+        from mediariver.actions.video.extract_audio import VideoExtractAudioAction
+
+        action = VideoExtractAudioAction()
+        params = action.params_model(codec="aac")
+        result = action.run(base_context, params, mock_executor, resolved_input="/tmp/video.mp4")
+
+        assert result.output.endswith(".m4a")

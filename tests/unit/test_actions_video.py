@@ -212,3 +212,28 @@ class TestVideoExtractAudioAction:
         result = action.run(base_context, params, mock_executor, resolved_input="/tmp/video.mp4")
 
         assert result.output.endswith(".m4a")
+
+
+class TestVideoExtractSubsAction:
+    def test_extract_srt(self, mock_executor, base_context):
+        from mediariver.actions.video.extract_subs import VideoExtractSubsAction
+
+        action = VideoExtractSubsAction()
+        params = action.params_model(format="srt", stream=0)
+        result = action.run(base_context, params, mock_executor, resolved_input="/tmp/video.mkv")
+
+        assert result.status == "done"
+        assert result.output.endswith(".srt")
+        mock_executor.run.assert_called_once()
+
+
+class TestVideoConcatAction:
+    def test_demuxer_concat(self, mock_executor, base_context):
+        from mediariver.actions.video.concat import VideoConcatAction
+
+        action = VideoConcatAction()
+        params = action.params_model(mode="demuxer", inputs=["/tmp/part1.mp4", "/tmp/part2.mp4"])
+        result = action.run(base_context, params, mock_executor, resolved_input=None)
+
+        assert result.status == "done"
+        mock_executor.run.assert_called_once()

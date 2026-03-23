@@ -1,0 +1,25 @@
+name: test-conditional
+description: "Workflow with conditions"
+
+connections:
+  local:
+    type: local
+
+watch:
+  connection: local
+  path: /tmp/incoming
+  extensions: [.mp4]
+
+flow:
+  - id: probe
+    action: video.info
+    input: "{{file.path}}"
+
+  - id: upscale
+    action: video.upscale
+    input: "{{steps.probe.output}}"
+    if: "{{steps.probe.width < 1200}}"
+    on_failure: skip
+    params:
+      engine: realesrgan
+      scale: 2

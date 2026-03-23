@@ -1,0 +1,15 @@
+name: bad-workflow
+
+connections:
+  local:
+    type: local
+
+watch:
+  connection: nonexistent
+  path: /tmp/incoming
+  extensions: [.mp4]
+
+flow:
+  - id: probe
+    action: video.info
+    input: "{{file.path}}"

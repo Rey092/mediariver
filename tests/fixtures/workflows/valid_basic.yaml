@@ -1,0 +1,23 @@
+name: test-basic
+description: "Basic test workflow"
+
+connections:
+  local:
+    type: local
+
+watch:
+  connection: local
+  path: /tmp/incoming
+  extensions: [.mp4, .mkv]
+  poll_interval: 10s
+
+flow:
+  - id: probe
+    action: video.info
+    input: "{{file.path}}"
+
+  - id: copy_out
+    action: copy
+    params:
+      from: "{{steps.probe.output}}"
+      to: "local:///tmp/output/{{file.stem}}"

@@ -88,3 +88,70 @@ class TestAudioConvertAction:
 
         assert result.status == "done"
         assert result.output.endswith(".flac")
+
+
+class TestAudioHlsAction:
+    def test_creates_hls_variants(self, mock_executor, base_context):
+        from mediariver.actions.audio.hls import AudioHlsAction
+
+        action = AudioHlsAction()
+        params = action.params_model(
+            variants=[{"bitrate": "128k"}, {"bitrate": "256k"}],
+            segment_time=10,
+        )
+        result = action.run(base_context, params, mock_executor, resolved_input="/tmp/audio.mp3")
+
+        assert result.status == "done"
+        assert result.extras.get("output_dir") is not None
+        # One ffmpeg call per variant
+        assert mock_executor.run.call_count == 2
+
+
+class TestAudioDurationCheckAction:
+    def test_passes_within_tolerance(self, mock_executor, base_context):
+        from mediariver.actions.audio.duration_check import AudioDurationCheckAction
+
+        mock_executor.run.side_effect = [
+            CommandResult(returncode=0, stdout='{"format":{"duration":"180.0"}}', stderr=""),
+            CommandResult(returncode=0, stdout='{"format":{"duration":"180.3"}}', stderr=""),
+        ]
+
+        action = AudioDurationCheckAction()
+        params = action.params_model(original="/tmp/orig.mp3", processed="/tmp/proc.m4a", tolerance_ms=500)
+        result = action.run(base_context, params, mock_executor)
+
+        assert result.status == "done"
+
+    def test_fails_beyond_tolerance(self, mock_executor, base_context):
+        from mediariver.actions.audio.duration_check import AudioDurationCheckAction
+
+        mock_executor.run.side_effect = [
+            CommandResult(returncode=0, stdout='{"format":{"duration":"180.0"}}', stderr=""),
+            CommandResult(returncode=0, stdout='{"format":{"duration":"175.0"}}', stderr=""),
+        ]
+
+        action = AudioDurationCheckAction()
+        params = action.params_model(
+            original="/tmp/orig.mp3", processed="/tmp/proc.m4a",
+            tolerance_ms=500, on_mismatch="fail"
+        )
+        with pytest.raises(RuntimeError, match="Duration mismatch"):
+            action.run(base_context, params, mock_executor)
+
+    def test_warns_beyond_tolerance(self, mock_executor, base_context):
+        from mediariver.actions.audio.duration_check import AudioDurationCheckAction
+
+        mock_executor.run.side_effect = [
+            CommandResult(returncode=0, stdout='{"format":{"duration":"180.0"}}', stderr=""),
+            CommandResult(returncode=0, stdout='{"format":{"duration":"175.0"}}', stderr=""),
+        ]
+
+        action = AudioDurationCheckAction()
+        params = action.params_model(
+            original="/tmp/orig.mp3", processed="/tmp/proc.m4a",
+            tolerance_ms=500, on_mismatch="warn"
+        )
+        result = action.run(base_context, params, mock_executor)
+
+        assert result.status == "done"
+        assert "warning" in result.extras

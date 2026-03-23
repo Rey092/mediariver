@@ -11,7 +11,6 @@ from mediariver.actions.base import ActionResult, BaseAction
 from mediariver.actions.executor import CommandExecutor
 from mediariver.actions.registry import register_action
 
-
 PRESETS: dict[str, dict[str, str]] = {
     "h264-web": {"codec": "libx264", "ext": "mp4"},
     "h264-fast": {"codec": "libx264", "ext": "mp4"},
@@ -61,11 +60,16 @@ class VideoTranscodeAction(BaseAction):
             args += ["-vf", ",".join(vf_filters)]
 
         args += [
-            "-c:v", video_codec,
-            "-crf", str(params.crf),
-            "-c:a", params.audio_codec,
-            "-b:a", params.audio_bitrate,
-            "-y", output_path,
+            "-c:v",
+            video_codec,
+            "-crf",
+            str(params.crf),
+            "-c:a",
+            params.audio_codec,
+            "-b:a",
+            params.audio_bitrate,
+            "-y",
+            output_path,
         ]
 
         result = executor.run(

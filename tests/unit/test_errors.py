@@ -2,8 +2,8 @@
 
 import pytest
 
-from mediariver.engine.errors import StepFailure, handle_step_failure
 from mediariver.config.schema import StepConfig
+from mediariver.engine.errors import StepFailure, handle_step_failure
 
 
 class TestHandleStepFailure:

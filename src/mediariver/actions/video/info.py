@@ -27,8 +27,10 @@ class VideoInfoAction(BaseAction):
         result = executor.run(
             binary="ffprobe",
             args=[
-                "-v", "quiet",
-                "-print_format", "json",
+                "-v",
+                "quiet",
+                "-print_format",
+                "json",
                 "-show_streams",
                 "-show_format",
                 input_path,

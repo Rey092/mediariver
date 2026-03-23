@@ -39,19 +39,19 @@ class VideoNormalizeAudioAction(BaseAction):
         output_path = os.path.join(work_dir, f"{stem}_normalized.mp4")
 
         loudnorm_filter = (
-            f"loudnorm=I={params.target_i}"
-            f":TP={params.target_tp}"
-            f":LRA={params.target_lra}"
-            f":print_format=json"
+            f"loudnorm=I={params.target_i}:TP={params.target_tp}:LRA={params.target_lra}:print_format=json"
         )
 
         # Pass 1: measure loudness
         pass1 = executor.run(
             binary="ffmpeg",
             args=[
-                "-i", input_path,
-                "-af", loudnorm_filter,
-                "-f", "null",
+                "-i",
+                input_path,
+                "-af",
+                loudnorm_filter,
+                "-f",
+                "null",
                 "-",
             ],
             docker_image="mediariver/ffmpeg:latest",
@@ -81,10 +81,14 @@ class VideoNormalizeAudioAction(BaseAction):
         pass2 = executor.run(
             binary="ffmpeg",
             args=[
-                "-i", input_path,
-                "-af", apply_filter,
-                "-c:v", "copy",
-                "-y", output_path,
+                "-i",
+                input_path,
+                "-af",
+                apply_filter,
+                "-c:v",
+                "copy",
+                "-y",
+                output_path,
             ],
             docker_image="mediariver/ffmpeg:latest",
         )

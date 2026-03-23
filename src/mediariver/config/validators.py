@@ -18,6 +18,5 @@ def _validate_watch_connection(spec: WorkflowSpec) -> None:
     if spec.watch.connection not in spec.connections:
         available = ", ".join(spec.connections.keys())
         raise ValidationError(
-            f"Watch connection '{spec.watch.connection}' not found. "
-            f"Available connections: {available}"
+            f"Watch connection '{spec.watch.connection}' not found. Available connections: {available}"
         )

@@ -1,10 +1,10 @@
 """Tests for connection registry and builders."""
 
 import pytest
-
-from mediariver.connections.registry import build_connection, resolve_connection_uri
-from mediariver.config.schema import ConnectionConfig
 from fs.memoryfs import MemoryFS
+
+from mediariver.config.schema import ConnectionConfig
+from mediariver.connections.registry import build_connection, resolve_connection_uri
 
 
 class TestBuildConnection:

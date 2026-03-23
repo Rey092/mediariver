@@ -2,8 +2,8 @@
 
 import os
 
-from mediariver.engine.context import build_file_context, update_step_context
 from mediariver.actions.base import ActionResult
+from mediariver.engine.context import build_file_context, update_step_context
 
 
 class TestBuildFileContext:

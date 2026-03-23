@@ -23,7 +23,9 @@ class ShellAction(BaseAction):
     name = "shell"
     params_model = ShellParams
 
-    def run(self, context: dict[str, Any], params: ShellParams, executor: CommandExecutor, resolved_input: str | None = None) -> ActionResult:
+    def run(
+        self, context: dict[str, Any], params: ShellParams, executor: CommandExecutor, resolved_input: str | None = None
+    ) -> ActionResult:
         proc = subprocess.run(
             [params.command, *params.args],
             capture_output=True,

@@ -44,12 +44,18 @@ class VideoThumbnailAction(BaseAction):
             output_path = os.path.join(work_dir, f"{stem}_thumb.jpg")
             seek = _resolve_timestamp(params.at)
             args = [
-                "-ss", seek,
-                "-i", input_path,
-                "-vframes", "1",
-                "-vf", f"scale={params.width}:-1",
-                "-q:v", "2",
-                "-y", output_path,
+                "-ss",
+                seek,
+                "-i",
+                input_path,
+                "-vframes",
+                "1",
+                "-vf",
+                f"scale={params.width}:-1",
+                "-q:v",
+                "2",
+                "-y",
+                output_path,
             ]
             result = executor.run(
                 binary="ffmpeg",
@@ -70,17 +76,18 @@ class VideoThumbnailAction(BaseAction):
             rows = params.grid.rows
             total = cols * rows
             # Select frames evenly distributed, tile them
-            tile_filter = (
-                f"select='not(mod(n,floor(t*{total}/duration)))',"
-                f"scale={params.width}:-1,"
-                f"tile={cols}x{rows}"
-            )
+            tile_filter = f"select='not(mod(n,floor(t*{total}/duration)))',scale={params.width}:-1,tile={cols}x{rows}"
             args = [
-                "-i", input_path,
-                "-vf", tile_filter,
-                "-frames:v", "1",
-                "-q:v", "2",
-                "-y", output_path,
+                "-i",
+                input_path,
+                "-vf",
+                tile_filter,
+                "-frames:v",
+                "1",
+                "-q:v",
+                "2",
+                "-y",
+                output_path,
             ]
             result = executor.run(
                 binary="ffmpeg",

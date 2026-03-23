@@ -41,9 +41,7 @@ class VideoCropAction(BaseAction):
         if params.mode == "ratio":
             w, h = params.ratio.split(":")
             # crop=w:h:(in_w-w)/2:(in_h-h)/2 using expression
-            crop_filter = (
-                f"crop=iw:iw*{h}/{w}:(iw-iw)/2:(ih-iw*{h}/{w})/2"
-            )
+            crop_filter = f"crop=iw:iw*{h}/{w}:(iw-iw)/2:(ih-iw*{h}/{w})/2"
         else:
             # auto-detect black bars
             crop_filter = f"cropdetect={params.detect_threshold}:2:0,crop"
@@ -51,13 +49,20 @@ class VideoCropAction(BaseAction):
         result = executor.run(
             binary="ffmpeg",
             args=[
-                "-i", input_path,
-                "-vf", crop_filter,
-                "-c:v", params.codec,
-                "-crf", str(params.crf),
-                "-preset", params.preset,
-                "-c:a", "copy",
-                "-y", output_path,
+                "-i",
+                input_path,
+                "-vf",
+                crop_filter,
+                "-c:v",
+                params.codec,
+                "-crf",
+                str(params.crf),
+                "-preset",
+                params.preset,
+                "-c:a",
+                "copy",
+                "-y",
+                output_path,
             ],
             docker_image="mediariver/ffmpeg:latest",
         )

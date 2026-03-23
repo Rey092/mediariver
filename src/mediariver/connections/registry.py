@@ -18,10 +18,7 @@ _builders: dict[str, Any] = {
 
 def build_connection(name: str, config: ConnectionConfig) -> FS:
     if config.type not in _builders:
-        raise KeyError(
-            f"Unknown connection type: '{config.type}'. "
-            f"Available: {list(_builders.keys())}"
-        )
+        raise KeyError(f"Unknown connection type: '{config.type}'. Available: {list(_builders.keys())}")
     return _builders[config.type](name, config)
 
 

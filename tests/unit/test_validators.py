@@ -1,11 +1,12 @@
 """Tests for cross-field workflow validation."""
 
+from pathlib import Path
+
 import pytest
 
 from mediariver.config.loader import load_workflow
-from mediariver.config.validators import validate_workflow, ValidationError as WorkflowValidationError
-
-from pathlib import Path
+from mediariver.config.validators import ValidationError as WorkflowValidationError
+from mediariver.config.validators import validate_workflow
 
 FIXTURES_DIR = Path(__file__).parent.parent / "fixtures" / "workflows"
 

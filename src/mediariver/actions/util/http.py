@@ -24,7 +24,13 @@ class HttpPostAction(BaseAction):
     name = "http.post"
     params_model = HttpPostParams
 
-    def run(self, context: dict[str, Any], params: HttpPostParams, executor: CommandExecutor, resolved_input: str | None = None) -> ActionResult:
+    def run(
+        self,
+        context: dict[str, Any],
+        params: HttpPostParams,
+        executor: CommandExecutor,
+        resolved_input: str | None = None,
+    ) -> ActionResult:
         response = httpx.post(
             params.url,
             json=params.body,
@@ -49,7 +55,13 @@ class HttpGetAction(BaseAction):
     name = "http.get"
     params_model = HttpGetParams
 
-    def run(self, context: dict[str, Any], params: HttpGetParams, executor: CommandExecutor, resolved_input: str | None = None) -> ActionResult:
+    def run(
+        self,
+        context: dict[str, Any],
+        params: HttpGetParams,
+        executor: CommandExecutor,
+        resolved_input: str | None = None,
+    ) -> ActionResult:
         response = httpx.get(params.url, headers=params.headers, timeout=params.timeout)
         if params.save_to:
             with open(params.save_to, "wb") as f:

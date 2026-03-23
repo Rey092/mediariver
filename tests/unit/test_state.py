@@ -5,7 +5,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from mediariver.state.database import create_tables
-from mediariver.state.models import Base, ProcessedFile, WorkflowRun
+from mediariver.state.models import ProcessedFile, WorkflowRun
 
 
 @pytest.fixture
@@ -36,12 +36,18 @@ class TestProcessedFile:
 
     def test_unique_constraint(self, db_session):
         pf1 = ProcessedFile(
-            workflow_name="wf", file_path="/a.mp4", file_hash="hash1",
-            file_size=100, status="done",
+            workflow_name="wf",
+            file_path="/a.mp4",
+            file_hash="hash1",
+            file_size=100,
+            status="done",
         )
         pf2 = ProcessedFile(
-            workflow_name="wf", file_path="/b.mp4", file_hash="hash1",
-            file_size=100, status="pending",
+            workflow_name="wf",
+            file_path="/b.mp4",
+            file_hash="hash1",
+            file_size=100,
+            status="pending",
         )
         db_session.add(pf1)
         db_session.commit()
@@ -51,8 +57,11 @@ class TestProcessedFile:
 
     def test_step_results_json(self, db_session):
         pf = ProcessedFile(
-            workflow_name="wf", file_path="/a.mp4", file_hash="h2",
-            file_size=100, status="running",
+            workflow_name="wf",
+            file_path="/a.mp4",
+            file_hash="h2",
+            file_size=100,
+            status="running",
             step_results={"probe": {"status": "done", "output": "/tmp/out"}},
         )
         db_session.add(pf)
@@ -63,8 +72,11 @@ class TestProcessedFile:
 
     def test_update_status(self, db_session):
         pf = ProcessedFile(
-            workflow_name="wf", file_path="/a.mp4", file_hash="h3",
-            file_size=100, status="pending",
+            workflow_name="wf",
+            file_path="/a.mp4",
+            file_hash="h3",
+            file_size=100,
+            status="pending",
         )
         db_session.add(pf)
         db_session.commit()

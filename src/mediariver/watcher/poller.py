@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import Callable
+from collections.abc import Callable
 
 import blake3 as b3
 import structlog

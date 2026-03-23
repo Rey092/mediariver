@@ -6,12 +6,12 @@ from unittest.mock import MagicMock
 import pytest
 
 from mediariver.actions.executor import CommandResult
-from mediariver.actions.video.info import VideoInfoAction
 from mediariver.actions.video.crop import VideoCropAction
-from mediariver.actions.video.transcode import VideoTranscodeAction
 from mediariver.actions.video.hls import VideoHlsAction
+from mediariver.actions.video.info import VideoInfoAction
 from mediariver.actions.video.normalize_audio import VideoNormalizeAudioAction
 from mediariver.actions.video.thumbnail import VideoThumbnailAction
+from mediariver.actions.video.transcode import VideoTranscodeAction
 
 
 @pytest.fixture
@@ -26,7 +26,14 @@ def base_context(tmp_path):
     work_dir = tmp_path / "work"
     work_dir.mkdir()
     return {
-        "file": {"name": "video.mp4", "stem": "video", "ext": ".mp4", "path": "/tmp/video.mp4", "hash": "h", "size": 1000},
+        "file": {
+            "name": "video.mp4",
+            "stem": "video",
+            "ext": ".mp4",
+            "path": "/tmp/video.mp4",
+            "hash": "h",
+            "size": 1000,
+        },
         "env": {},
         "steps": {},
         "_work_dir": str(work_dir),
@@ -35,18 +42,22 @@ def base_context(tmp_path):
 
 class TestVideoInfoAction:
     def test_parses_ffprobe_json(self, mock_executor, base_context):
-        probe_output = json.dumps({
-            "streams": [{
-                "codec_type": "video",
-                "codec_name": "h264",
-                "width": 1920,
-                "height": 1080,
-                "r_frame_rate": "24/1",
-                "duration": "120.5",
-                "bit_rate": "5000000",
-            }],
-            "format": {"duration": "120.5"},
-        })
+        probe_output = json.dumps(
+            {
+                "streams": [
+                    {
+                        "codec_type": "video",
+                        "codec_name": "h264",
+                        "width": 1920,
+                        "height": 1080,
+                        "r_frame_rate": "24/1",
+                        "duration": "120.5",
+                        "bit_rate": "5000000",
+                    }
+                ],
+                "format": {"duration": "120.5"},
+            }
+        )
         mock_executor.run.return_value = CommandResult(returncode=0, stdout=probe_output, stderr="")
 
         action = VideoInfoAction()
@@ -59,7 +70,12 @@ class TestVideoInfoAction:
         assert result.extras["codec"] == "h264"
 
     def test_uses_resolved_input(self, mock_executor, base_context):
-        probe_output = json.dumps({"streams": [{"codec_type": "video", "codec_name": "h264", "width": 1920, "height": 1080}], "format": {"duration": "10"}})
+        probe_output = json.dumps(
+            {
+                "streams": [{"codec_type": "video", "codec_name": "h264", "width": 1920, "height": 1080}],
+                "format": {"duration": "10"},
+            }
+        )
         mock_executor.run.return_value = CommandResult(returncode=0, stdout=probe_output, stderr="")
 
         action = VideoInfoAction()
@@ -108,7 +124,10 @@ class TestVideoHlsAction:
 
 class TestVideoNormalizeAudioAction:
     def test_two_pass_loudnorm(self, mock_executor, base_context):
-        pass1_stderr = '{"input_i": "-24.5", "input_tp": "-3.2", "input_lra": "8.1", "input_thresh": "-35.0", "target_offset": "0.5"}'
+        pass1_stderr = (
+            '{"input_i": "-24.5", "input_tp": "-3.2", "input_lra": "8.1",'
+            ' "input_thresh": "-35.0", "target_offset": "0.5"}'
+        )
         mock_executor.run.side_effect = [
             CommandResult(returncode=0, stdout="", stderr=pass1_stderr),
             CommandResult(returncode=0, stdout="", stderr=""),

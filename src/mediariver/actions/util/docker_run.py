@@ -25,7 +25,13 @@ class DockerRunAction(BaseAction):
     name = "docker"
     params_model = DockerRunParams
 
-    def run(self, context: dict[str, Any], params: DockerRunParams, executor: CommandExecutor, resolved_input: str | None = None) -> ActionResult:
+    def run(
+        self,
+        context: dict[str, Any],
+        params: DockerRunParams,
+        executor: CommandExecutor,
+        resolved_input: str | None = None,
+    ) -> ActionResult:
         result = executor.run(
             binary=params.command or "sh",
             args=params.args,

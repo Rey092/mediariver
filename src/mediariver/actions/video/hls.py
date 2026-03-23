@@ -57,9 +57,7 @@ class VideoHlsAction(BaseAction):
         # Scale each video stream
         scale_parts = []
         for i, variant in enumerate(params.variants):
-            scale_parts.append(
-                f"[v{i}]scale=-2:{variant.height}[vout{i}]"
-            )
+            scale_parts.append(f"[v{i}]scale=-2:{variant.height}[vout{i}]")
         filter_complex = filter_complex + ";" + ";".join(scale_parts)
 
         args = ["-i", input_path, "-filter_complex", filter_complex]
@@ -67,25 +65,40 @@ class VideoHlsAction(BaseAction):
         # Map each variant
         for i, variant in enumerate(params.variants):
             args += [
-                "-map", f"[vout{i}]",
-                "-map", f"[a{i}]",
-                f"-c:v:{i}", variant.codec,
-                f"-profile:v:{i}", variant.profile,
-                f"-level:v:{i}", variant.level,
-                f"-b:v:{i}", variant.video_bitrate,
-                f"-c:a:{i}", "aac",
-                f"-b:a:{i}", variant.audio_bitrate,
+                "-map",
+                f"[vout{i}]",
+                "-map",
+                f"[a{i}]",
+                f"-c:v:{i}",
+                variant.codec,
+                f"-profile:v:{i}",
+                variant.profile,
+                f"-level:v:{i}",
+                variant.level,
+                f"-b:v:{i}",
+                variant.video_bitrate,
+                f"-c:a:{i}",
+                "aac",
+                f"-b:a:{i}",
+                variant.audio_bitrate,
             ]
 
         # HLS output options
         args += [
-            "-f", "hls",
-            "-hls_time", str(params.segment_time),
-            "-hls_playlist_type", params.playlist_type.upper(),
-            "-hls_flags", "independent_segments",
-            "-hls_segment_type", "mpegts",
-            "-hls_segment_filename", os.path.join(output_dir, "stream_%v_%03d.ts"),
-            "-master_pl_name", "master.m3u8",
+            "-f",
+            "hls",
+            "-hls_time",
+            str(params.segment_time),
+            "-hls_playlist_type",
+            params.playlist_type.upper(),
+            "-hls_flags",
+            "independent_segments",
+            "-hls_segment_type",
+            "mpegts",
+            "-hls_segment_filename",
+            os.path.join(output_dir, "stream_%v_%03d.ts"),
+            "-master_pl_name",
+            "master.m3u8",
             "-var_stream_map",
             " ".join(f"v:{i},a:{i}" for i in range(n)),
             os.path.join(output_dir, "stream_%v.m3u8"),

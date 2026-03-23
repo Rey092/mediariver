@@ -21,7 +21,13 @@ class DeleteAction(BaseAction):
     name = "delete"
     params_model = DeleteParams
 
-    def run(self, context: dict[str, Any], params: DeleteParams, executor: CommandExecutor, resolved_input: str | None = None) -> ActionResult:
+    def run(
+        self,
+        context: dict[str, Any],
+        params: DeleteParams,
+        executor: CommandExecutor,
+        resolved_input: str | None = None,
+    ) -> ActionResult:
         connections = context.get("_connections", {})
         fs, file_path = resolve_connection_uri(params.path, connections)
         fs.remove(file_path)

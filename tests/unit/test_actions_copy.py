@@ -6,8 +6,8 @@ import pytest
 from fs.memoryfs import MemoryFS
 
 from mediariver.actions.copy import CopyAction
-from mediariver.actions.move import MoveAction
 from mediariver.actions.delete import DeleteAction
+from mediariver.actions.move import MoveAction
 
 
 @pytest.fixture

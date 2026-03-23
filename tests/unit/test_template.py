@@ -1,8 +1,7 @@
 """Tests for Jinja2 template resolution."""
 
-import pytest
 
-from mediariver.engine.template import resolve_string, resolve_dict, evaluate_condition
+from mediariver.engine.template import evaluate_condition, resolve_dict, resolve_string
 
 
 class TestResolveString:

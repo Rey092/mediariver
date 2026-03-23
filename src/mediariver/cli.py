@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 import typer
 
-from mediariver import __version__
 from mediariver.logging import configure_logging
 
 app = typer.Typer(name="mediariver", help="Spec-driven media pipeline CLI.")
@@ -16,9 +14,9 @@ app = typer.Typer(name="mediariver", help="Spec-driven media pipeline CLI.")
 @app.command()
 def run(
     workflows_dir: Path = typer.Option(Path("./workflows"), help="Path to workflows directory"),
-    database_url: Optional[str] = typer.Option(None, help="Database URL (default: sqlite)"),
+    database_url: str | None = typer.Option(None, help="Database URL (default: sqlite)"),
     log_level: str = typer.Option("info", help="Log level: debug, info, warning, error"),
-    workflow_name: Optional[str] = typer.Argument(None, help="Run a specific workflow by name"),
+    workflow_name: str | None = typer.Argument(None, help="Run a specific workflow by name"),
 ) -> None:
     """Load workflows and start watching/processing."""
     configure_logging(log_level)
@@ -73,14 +71,15 @@ def run(
                 session = get_session(engine)
 
                 def is_known(conn: str, path: str) -> bool:
-                    return session.query(ProcessedFile).filter_by(
-                        workflow_name=spec.name, file_path=path
-                    ).first() is not None
+                    return (
+                        session.query(ProcessedFile).filter_by(workflow_name=spec.name, file_path=path).first()
+                        is not None
+                    )
 
                 def on_new_file(path: str, file_hash: str, file_size: int) -> None:
-                    existing = session.query(ProcessedFile).filter_by(
-                        workflow_name=spec.name, file_hash=file_hash
-                    ).first()
+                    existing = (
+                        session.query(ProcessedFile).filter_by(workflow_name=spec.name, file_hash=file_hash).first()
+                    )
                     if existing and existing.status == "done":
                         return
 
@@ -104,7 +103,8 @@ def run(
                     work_dir.mkdir(parents=True, exist_ok=True)
 
                     runner = PipelineRunner(
-                        spec, executor,
+                        spec,
+                        executor,
                         connections=connections,
                         work_dir=str(work_dir),
                     )
@@ -121,11 +121,11 @@ def run(
                 poll_once(watch_fs, spec.watch, is_known, on_new_file)
                 session.close()
 
+                import contextlib
+
                 for fs in connections.values():
-                    try:
+                    with contextlib.suppress(Exception):
                         fs.close()
-                    except Exception:
-                        pass
 
             interval = parse_interval(specs[0].watch.poll_interval) if specs else 30
             time.sleep(interval)
@@ -161,8 +161,8 @@ def validate(
 
 @app.command()
 def status(
-    workflow_name: Optional[str] = typer.Argument(None, help="Filter by workflow name"),
-    database_url: Optional[str] = typer.Option(None, help="Database URL"),
+    workflow_name: str | None = typer.Argument(None, help="Filter by workflow name"),
+    database_url: str | None = typer.Option(None, help="Database URL"),
 ) -> None:
     """Show processed file counts by status."""
     from sqlalchemy import func
@@ -197,8 +197,8 @@ def status(
 @app.command()
 def retry(
     workflow_name: str = typer.Argument(..., help="Workflow name"),
-    file_hash: Optional[str] = typer.Option(None, help="Retry specific file by hash"),
-    database_url: Optional[str] = typer.Option(None, help="Database URL"),
+    file_hash: str | None = typer.Option(None, help="Retry specific file by hash"),
+    database_url: str | None = typer.Option(None, help="Database URL"),
 ) -> None:
     """Reset failed files to pending for reprocessing."""
     from mediariver.state.database import create_db_engine, create_tables, get_session
@@ -226,8 +226,8 @@ def retry(
 @app.command()
 def reset(
     workflow_name: str = typer.Argument(..., help="Workflow name"),
-    file_status: Optional[str] = typer.Option(None, "--status", help="Only reset files with this status"),
-    database_url: Optional[str] = typer.Option(None, help="Database URL"),
+    file_status: str | None = typer.Option(None, "--status", help="Only reset files with this status"),
+    database_url: str | None = typer.Option(None, help="Database URL"),
 ) -> None:
     """Clear state for a workflow."""
     from mediariver.state.database import create_db_engine, create_tables, get_session

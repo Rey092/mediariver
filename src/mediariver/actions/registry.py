@@ -32,4 +32,5 @@ def register_action(name: str):
     def decorator(cls):
         ActionRegistry.register(name, cls)
         return cls
+
     return decorator

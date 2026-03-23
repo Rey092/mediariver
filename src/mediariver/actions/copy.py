@@ -25,7 +25,9 @@ class CopyAction(BaseAction):
     name = "copy"
     params_model = CopyParams
 
-    def run(self, context: dict[str, Any], params: CopyParams, executor: CommandExecutor, resolved_input: str | None = None) -> ActionResult:
+    def run(
+        self, context: dict[str, Any], params: CopyParams, executor: CommandExecutor, resolved_input: str | None = None
+    ) -> ActionResult:
         connections = context.get("_connections", {})
         src_fs, src_path = resolve_connection_uri(params.from_path, connections)
         dst_fs, dst_path = resolve_connection_uri(params.to_path, connections)

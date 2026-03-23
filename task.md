@@ -2,7 +2,7 @@
 
 ## What is this
 
-A Python CLI server that watches directories, picks up media files, and runs processing workflows defined in YAML specs. Think `docker-compose` but for file/media pipelines.
+A Python CLI (use 'typer') server that watches directories, picks up media files, and runs processing workflows defined in YAML specs. Think `docker-compose` but for file/media pipelines.
 
 Core principles:
 - YAML-first — workflows are specs in a `workflows/` folder, Git-friendly, AI-friendly
@@ -10,6 +10,7 @@ Core principles:
 - Pluggable filesystems — local, S3, FTP, SFTP via [PyFilesystem2](https://github.com/PyFilesystem/pyfilesystem2)
 - Docker-native — each action backed by a container image, auto-pulled if binary not available locally
 - Idempotent — tracks already-processed files, never reprocesses unless forced
+- Can run inside a docker, need a deployment to dockerhub
 
 ## Project Structure
 

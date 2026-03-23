@@ -25,7 +25,9 @@ class MoveAction(BaseAction):
     name = "move"
     params_model = MoveParams
 
-    def run(self, context: dict[str, Any], params: MoveParams, executor: CommandExecutor, resolved_input: str | None = None) -> ActionResult:
+    def run(
+        self, context: dict[str, Any], params: MoveParams, executor: CommandExecutor, resolved_input: str | None = None
+    ) -> ActionResult:
         connections = context.get("_connections", {})
         src_fs, src_path = resolve_connection_uri(params.from_path, connections)
         dst_fs, dst_path = resolve_connection_uri(params.to_path, connections)

@@ -39,5 +39,4 @@ class BaseAction(ABC):
         params: BaseModel,
         executor: CommandExecutor,
         resolved_input: str | None = None,
-    ) -> ActionResult:
-        ...
+    ) -> ActionResult: ...

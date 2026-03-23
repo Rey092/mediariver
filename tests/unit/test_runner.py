@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from mediariver.actions.base import ActionResult, BaseAction, EmptyParams
-from mediariver.actions.registry import ActionRegistry, register_action
+from mediariver.actions.registry import ActionRegistry
 from mediariver.config.schema import ConnectionConfig, StepConfig, WatchConfig, WorkflowSpec
 from mediariver.engine.runner import PipelineRunner
 
@@ -56,9 +56,11 @@ class TestPipelineRunner:
 
     def test_run_single_step(self, tmp_path):
         ActionRegistry.register("mock.action", MockAction)
-        workflow = _make_workflow([
-            StepConfig(id="step1", action="mock.action", input="{{file.path}}"),
-        ])
+        workflow = _make_workflow(
+            [
+                StepConfig(id="step1", action="mock.action", input="{{file.path}}"),
+            ]
+        )
 
         test_file = tmp_path / "test.mp4"
         test_file.write_bytes(b"fake")
@@ -71,10 +73,12 @@ class TestPipelineRunner:
 
     def test_run_multiple_steps_chain_context(self, tmp_path):
         ActionRegistry.register("mock.action", MockAction)
-        workflow = _make_workflow([
-            StepConfig(id="first", action="mock.action"),
-            StepConfig(id="second", action="mock.action", input="{{steps.first.output}}"),
-        ])
+        workflow = _make_workflow(
+            [
+                StepConfig(id="first", action="mock.action"),
+                StepConfig(id="second", action="mock.action", input="{{steps.first.output}}"),
+            ]
+        )
 
         test_file = tmp_path / "test.mp4"
         test_file.write_bytes(b"fake")
@@ -87,10 +91,12 @@ class TestPipelineRunner:
 
     def test_resolved_input_passed_to_action(self, tmp_path):
         ActionRegistry.register("mock.action", MockAction)
-        workflow = _make_workflow([
-            StepConfig(id="first", action="mock.action"),
-            StepConfig(id="second", action="mock.action", input="{{steps.first.output}}"),
-        ])
+        workflow = _make_workflow(
+            [
+                StepConfig(id="first", action="mock.action"),
+                StepConfig(id="second", action="mock.action", input="{{steps.first.output}}"),
+            ]
+        )
 
         test_file = tmp_path / "test.mp4"
         test_file.write_bytes(b"fake")
@@ -103,10 +109,12 @@ class TestPipelineRunner:
 
     def test_condition_skips_step(self, tmp_path):
         ActionRegistry.register("mock.action", MockAction)
-        workflow = _make_workflow([
-            StepConfig(id="first", action="mock.action"),
-            StepConfig(id="skipped", action="mock.action", condition="{{false}}"),
-        ])
+        workflow = _make_workflow(
+            [
+                StepConfig(id="first", action="mock.action"),
+                StepConfig(id="skipped", action="mock.action", condition="{{false}}"),
+            ]
+        )
 
         test_file = tmp_path / "test.mp4"
         test_file.write_bytes(b"fake")
@@ -119,9 +127,11 @@ class TestPipelineRunner:
 
     def test_abort_on_failure(self, tmp_path):
         ActionRegistry.register("failing.action", FailingAction)
-        workflow = _make_workflow([
-            StepConfig(id="fail_step", action="failing.action", on_failure="abort"),
-        ])
+        workflow = _make_workflow(
+            [
+                StepConfig(id="fail_step", action="failing.action", on_failure="abort"),
+            ]
+        )
 
         test_file = tmp_path / "test.mp4"
         test_file.write_bytes(b"fake")
@@ -135,10 +145,12 @@ class TestPipelineRunner:
     def test_skip_on_failure(self, tmp_path):
         ActionRegistry.register("failing.action", FailingAction)
         ActionRegistry.register("mock.action", MockAction)
-        workflow = _make_workflow([
-            StepConfig(id="fail_step", action="failing.action", on_failure="skip"),
-            StepConfig(id="after", action="mock.action"),
-        ])
+        workflow = _make_workflow(
+            [
+                StepConfig(id="fail_step", action="failing.action", on_failure="skip"),
+                StepConfig(id="after", action="mock.action"),
+            ]
+        )
 
         test_file = tmp_path / "test.mp4"
         test_file.write_bytes(b"fake")
@@ -151,9 +163,11 @@ class TestPipelineRunner:
 
     def test_connections_and_work_dir_in_context(self, tmp_path):
         ActionRegistry.register("mock.action", MockAction)
-        workflow = _make_workflow([
-            StepConfig(id="step1", action="mock.action"),
-        ])
+        workflow = _make_workflow(
+            [
+                StepConfig(id="step1", action="mock.action"),
+            ]
+        )
 
         test_file = tmp_path / "test.mp4"
         test_file.write_bytes(b"fake")

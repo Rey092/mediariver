@@ -1,0 +1,10 @@
+{
+  "branch": "main",
+  "version_toml": ["pyproject.toml:project.version"],
+  "commit_parser": "angular",
+  "major_on_zero": false,
+  "tag_format": "v{version}",
+  "changelog": {
+    "changelog_file": "CHANGELOG.md"
+  }
+}

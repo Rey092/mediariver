@@ -10,7 +10,7 @@ def build_sftp_fs(name: str, config: ConnectionConfig):
     try:
         from fs.sshfs import SSHFS
     except ImportError:
-        raise ImportError("SFTP support requires fs.sshfs: pip install 'mediariver[sftp]'")
+        raise ImportError("SFTP support requires fs.sshfs: pip install 'mediariver[sftp]'") from None
 
     host = getattr(config, "host", "localhost")
     port = getattr(config, "port", 22)

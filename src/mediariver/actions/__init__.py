@@ -31,13 +31,22 @@ import mediariver.actions.image.upscale  # noqa: F401
 
 # isort: split
 # Utility actions
+import mediariver.actions.util.hash_verify  # noqa: F401
+import mediariver.actions.util.ocr  # noqa: F401
 import mediariver.actions.util.shell  # noqa: F401
+import mediariver.actions.util.strip_metadata  # noqa: F401
+import mediariver.actions.util.watermark  # noqa: F401
 
 # isort: split
 # Video actions
+import mediariver.actions.video.concat  # noqa: F401
 import mediariver.actions.video.crop  # noqa: F401
+import mediariver.actions.video.extract_audio  # noqa: F401
+import mediariver.actions.video.extract_subs  # noqa: F401
 import mediariver.actions.video.hls  # noqa: F401
 import mediariver.actions.video.info  # noqa: F401
 import mediariver.actions.video.normalize_audio  # noqa: F401
+import mediariver.actions.video.preview  # noqa: F401
 import mediariver.actions.video.thumbnail  # noqa: F401
 import mediariver.actions.video.transcode  # noqa: F401
+import mediariver.actions.video.upscale  # noqa: F401

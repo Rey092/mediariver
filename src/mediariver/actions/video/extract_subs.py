@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Literal, Union
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -14,7 +14,7 @@ from mediariver.actions.registry import register_action
 
 class VideoExtractSubsParams(BaseModel):
     format: Literal["srt", "ass", "vtt"] = "srt"
-    stream: Union[Literal["all"], int] = Field(default="all")
+    stream: Literal["all"] | int = Field(default="all")
 
 
 @register_action("video.extract_subs")
@@ -37,9 +37,12 @@ class VideoExtractSubsAction(BaseAction):
         output_path = os.path.join(work_dir, f"{stem}_subs_{stream_index}.{params.format}")
 
         args = [
-            "-i", input_path,
-            "-map", f"0:s:{stream_index}",
-            "-y", output_path,
+            "-i",
+            input_path,
+            "-map",
+            f"0:s:{stream_index}",
+            "-y",
+            output_path,
         ]
 
         result = executor.run(

@@ -50,9 +50,9 @@ class TestResolveConnectionUri:
 class TestFtpConnection:
     def test_build_ftp_registered(self):
         """FTP type is recognized by the registry."""
-        config = ConnectionConfig(type="ftp", host="localhost", user="test", passwd="pass")
-        # We can't actually connect, but verify it doesn't raise KeyError
+        # We can't actually connect, but verify the type is registered
         from mediariver.connections.registry import _builders
+
         assert "ftp" in _builders
 
 
@@ -60,4 +60,5 @@ class TestSftpConnection:
     def test_build_sftp_registered(self):
         """SFTP type is recognized by the registry."""
         from mediariver.connections.registry import _builders
+
         assert "sftp" in _builders

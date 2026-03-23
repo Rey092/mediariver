@@ -155,3 +155,42 @@ class TestAudioDurationCheckAction:
 
         assert result.status == "done"
         assert "warning" in result.extras
+
+
+class TestAudioTagAction:
+    def test_sets_metadata(self, mock_executor, base_context):
+        from mediariver.actions.audio.tag import AudioTagAction
+
+        action = AudioTagAction()
+        params = action.params_model(tags={"title": "My Song", "artist": "Artist"})
+        result = action.run(base_context, params, mock_executor, resolved_input="/tmp/audio.mp3")
+
+        assert result.status == "done"
+        mock_executor.run.assert_called_once()
+        args = mock_executor.run.call_args.kwargs.get("args", [])
+        assert "-metadata" in args
+
+    def test_strip_existing(self, mock_executor, base_context):
+        from mediariver.actions.audio.tag import AudioTagAction
+
+        action = AudioTagAction()
+        params = action.params_model(tags={"title": "Clean"}, strip_existing=True)
+        result = action.run(base_context, params, mock_executor, resolved_input="/tmp/audio.mp3")
+
+        assert result.status == "done"
+        args = mock_executor.run.call_args.kwargs.get("args", [])
+        assert "-map_metadata" in args
+
+
+class TestAudioEmbedArtAction:
+    def test_embeds_cover(self, mock_executor, base_context):
+        from mediariver.actions.audio.embed_art import AudioEmbedArtAction
+
+        action = AudioEmbedArtAction()
+        params = action.params_model(image="/tmp/cover.jpg")
+        result = action.run(base_context, params, mock_executor, resolved_input="/tmp/audio.mp3")
+
+        assert result.status == "done"
+        mock_executor.run.assert_called_once()
+        args = mock_executor.run.call_args.kwargs.get("args", [])
+        assert "/tmp/cover.jpg" in args

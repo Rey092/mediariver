@@ -1,0 +1,252 @@
+"""MediaRiver CLI — typer application."""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Optional
+
+import typer
+
+from mediariver import __version__
+from mediariver.logging import configure_logging
+
+app = typer.Typer(name="mediariver", help="Spec-driven media pipeline CLI.")
+
+
+@app.command()
+def run(
+    workflows_dir: Path = typer.Option(Path("./workflows"), help="Path to workflows directory"),
+    database_url: Optional[str] = typer.Option(None, help="Database URL (default: sqlite)"),
+    log_level: str = typer.Option("info", help="Log level: debug, info, warning, error"),
+    workflow_name: Optional[str] = typer.Argument(None, help="Run a specific workflow by name"),
+) -> None:
+    """Load workflows and start watching/processing."""
+    configure_logging(log_level)
+
+    import time
+
+    import structlog
+
+    from mediariver.actions.executor import CommandExecutor
+    from mediariver.config.loader import load_workflows_from_dir
+    from mediariver.config.validators import validate_workflow
+    from mediariver.connections.registry import build_connection
+    from mediariver.engine.runner import PipelineRunner
+    from mediariver.state.database import create_db_engine, create_tables, get_session
+    from mediariver.state.models import ProcessedFile
+    from mediariver.watcher.poller import parse_interval, poll_once
+
+    log = structlog.get_logger()
+
+    specs = load_workflows_from_dir(workflows_dir)
+    if not specs:
+        log.warning("no_workflows_found", dir=str(workflows_dir))
+        raise typer.Exit(1)
+
+    for spec in specs:
+        validate_workflow(spec)
+
+    if workflow_name:
+        specs = [s for s in specs if s.name == workflow_name]
+        if not specs:
+            log.error("workflow_not_found", name=workflow_name)
+            raise typer.Exit(1)
+
+    engine = create_db_engine(database_url)
+    create_tables(engine)
+    executor = CommandExecutor()
+    log.info("mediariver_starting", workflows=[s.name for s in specs])
+
+    # Import actions to trigger registration
+    import mediariver.actions  # noqa: F401
+
+    try:
+        while True:
+            for spec in specs:
+                connections = {}
+                for conn_name, conn_config in spec.connections.items():
+                    connections[conn_name] = build_connection(conn_name, conn_config)
+
+                watch_fs = connections[spec.watch.connection]
+                work_base = Path.home() / ".mediariver" / "work" / spec.name
+
+                session = get_session(engine)
+
+                def is_known(conn: str, path: str) -> bool:
+                    return session.query(ProcessedFile).filter_by(
+                        workflow_name=spec.name, file_path=path
+                    ).first() is not None
+
+                def on_new_file(path: str, file_hash: str, file_size: int) -> None:
+                    existing = session.query(ProcessedFile).filter_by(
+                        workflow_name=spec.name, file_hash=file_hash
+                    ).first()
+                    if existing and existing.status == "done":
+                        return
+
+                    if not existing:
+                        pf = ProcessedFile(
+                            workflow_name=spec.name,
+                            file_path=path,
+                            file_hash=file_hash,
+                            file_size=file_size,
+                            status="pending",
+                        )
+                        session.add(pf)
+                        session.commit()
+                        existing = pf
+
+                    existing.status = "running"
+                    existing.attempts += 1
+                    session.commit()
+
+                    work_dir = work_base / file_hash
+                    work_dir.mkdir(parents=True, exist_ok=True)
+
+                    runner = PipelineRunner(
+                        spec, executor,
+                        connections=connections,
+                        work_dir=str(work_dir),
+                    )
+                    result = runner.run_file(path, file_hash)
+
+                    existing.status = result["status"]
+                    existing.step_results = result.get("step_results", {})
+                    existing.error = result.get("error")
+                    existing.current_step = result.get("failed_step")
+                    session.commit()
+
+                    log.info("file_processed", workflow=spec.name, file=path, status=result["status"])
+
+                poll_once(watch_fs, spec.watch, is_known, on_new_file)
+                session.close()
+
+                for fs in connections.values():
+                    try:
+                        fs.close()
+                    except Exception:
+                        pass
+
+            interval = parse_interval(specs[0].watch.poll_interval) if specs else 30
+            time.sleep(interval)
+    except KeyboardInterrupt:
+        log.info("mediariver_stopped")
+
+
+@app.command()
+def validate(
+    workflows_dir: Path = typer.Option(Path("./workflows"), help="Path to workflows directory"),
+) -> None:
+    """Validate all workflow specs without running them."""
+    configure_logging("info")
+
+    from mediariver.config.loader import load_workflows_from_dir
+    from mediariver.config.validators import ValidationError as WfError
+    from mediariver.config.validators import validate_workflow
+
+    specs = load_workflows_from_dir(workflows_dir)
+    errors = []
+    for spec in specs:
+        try:
+            validate_workflow(spec)
+            typer.echo(f"  OK: {spec.name}")
+        except WfError as e:
+            errors.append((spec.name, str(e)))
+            typer.echo(f"  FAIL: {spec.name} — {e}")
+
+    typer.echo(f"\n{len(specs)} workflow(s) checked, {len(errors)} error(s).")
+    if errors:
+        raise typer.Exit(1)
+
+
+@app.command()
+def status(
+    workflow_name: Optional[str] = typer.Argument(None, help="Filter by workflow name"),
+    database_url: Optional[str] = typer.Option(None, help="Database URL"),
+) -> None:
+    """Show processed file counts by status."""
+    from sqlalchemy import func
+
+    from mediariver.state.database import create_db_engine, create_tables, get_session
+    from mediariver.state.models import ProcessedFile
+
+    engine = create_db_engine(database_url)
+    create_tables(engine)
+    session = get_session(engine)
+
+    query = session.query(
+        ProcessedFile.workflow_name,
+        ProcessedFile.status,
+        func.count(ProcessedFile.id),
+    ).group_by(ProcessedFile.workflow_name, ProcessedFile.status)
+
+    if workflow_name:
+        query = query.filter(ProcessedFile.workflow_name == workflow_name)
+
+    results = query.all()
+    if not results:
+        typer.echo("No processed files found.")
+        return
+
+    for wf_name, file_status, count in results:
+        typer.echo(f"  {wf_name}: {file_status} = {count}")
+
+    session.close()
+
+
+@app.command()
+def retry(
+    workflow_name: str = typer.Argument(..., help="Workflow name"),
+    file_hash: Optional[str] = typer.Option(None, help="Retry specific file by hash"),
+    database_url: Optional[str] = typer.Option(None, help="Database URL"),
+) -> None:
+    """Reset failed files to pending for reprocessing."""
+    from mediariver.state.database import create_db_engine, create_tables, get_session
+    from mediariver.state.models import ProcessedFile
+
+    engine = create_db_engine(database_url)
+    create_tables(engine)
+    session = get_session(engine)
+
+    query = session.query(ProcessedFile).filter_by(workflow_name=workflow_name, status="failed")
+    if file_hash:
+        query = query.filter_by(file_hash=file_hash)
+
+    count = 0
+    for pf in query.all():
+        pf.status = "pending"
+        pf.error = None
+        count += 1
+
+    session.commit()
+    session.close()
+    typer.echo(f"Reset {count} file(s) to pending.")
+
+
+@app.command()
+def reset(
+    workflow_name: str = typer.Argument(..., help="Workflow name"),
+    file_status: Optional[str] = typer.Option(None, "--status", help="Only reset files with this status"),
+    database_url: Optional[str] = typer.Option(None, help="Database URL"),
+) -> None:
+    """Clear state for a workflow."""
+    from mediariver.state.database import create_db_engine, create_tables, get_session
+    from mediariver.state.models import ProcessedFile
+
+    engine = create_db_engine(database_url)
+    create_tables(engine)
+    session = get_session(engine)
+
+    query = session.query(ProcessedFile).filter_by(workflow_name=workflow_name)
+    if file_status:
+        query = query.filter_by(status=file_status)
+
+    count = query.delete()
+    session.commit()
+    session.close()
+    typer.echo(f"Deleted {count} record(s) for '{workflow_name}'.")
+
+
+@app.callback()
+def main() -> None:
+    """MediaRiver — Spec-driven media pipeline CLI."""

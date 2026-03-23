@@ -7,12 +7,16 @@ from typing import Any
 from fs.base import FS
 
 from mediariver.config.schema import ConnectionConfig
+from mediariver.connections.ftp import build_ftp_fs
 from mediariver.connections.local import build_local_fs
 from mediariver.connections.s3 import build_s3_fs
+from mediariver.connections.sftp import build_sftp_fs
 
 _builders: dict[str, Any] = {
     "local": build_local_fs,
     "s3": build_s3_fs,
+    "ftp": build_ftp_fs,
+    "sftp": build_sftp_fs,
 }
 
 

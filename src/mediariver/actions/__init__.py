@@ -1,5 +1,10 @@
 """Action imports — triggers @register_action decorators."""
 
+# Audio actions
+import mediariver.actions.audio.convert  # noqa: F401
+import mediariver.actions.audio.info  # noqa: F401
+import mediariver.actions.audio.normalize  # noqa: F401
+
 # Filesystem actions
 import mediariver.actions.copy  # noqa: F401
 import mediariver.actions.delete  # noqa: F401

@@ -1,9 +1,15 @@
 # CHANGELOG
 
 
+## v0.5.3 (2026-03-24)
+
+
 ## v0.5.2 (2026-03-24)
 
 ### Bug Fixes
+
+- Update local shit
+  ([`bb9d81a`](https://github.com/Rey092/mediariver/commit/bb9d81a477adac8a35420f16a3b2ee59b38fde5b))
 
 - Use twine for PyPI publish instead of trusted publishing
   ([`49414a9`](https://github.com/Rey092/mediariver/commit/49414a91dde50398c022db19afeaef3d8e50f13d))

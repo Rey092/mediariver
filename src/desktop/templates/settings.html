@@ -69,7 +69,11 @@
 </div>
 
 <div class="card mt-4">
-    <h2 class="card-title">Engine Control</h2>
-    <button class="btn btn-accent" hx-post="/api/server/restart" hx-swap="none">Restart Engine</button>
+    <h2 class="card-title">Control</h2>
+    <div style="display: flex; gap: 12px;">
+        <button class="btn" hx-post="/api/engine/restart" hx-swap="none" title="Restart the media processing engine only">Restart Engine</button>
+        <button class="btn btn-accent" hx-post="/api/app/restart" hx-swap="none" title="Full restart — engine + web server (picks up code changes)">Restart App</button>
+    </div>
+    <p class="text-sm mt-2" style="color: #888;">Engine = media pipeline process. App = entire tray app + web server (use after updates).</p>
 </div>
 {% endblock %}

@@ -5,7 +5,9 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
+import os
 import subprocess
+import sys
 from dataclasses import asdict
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -250,10 +252,17 @@ def create_app(config: AppConfig, service: EngineService, updater: Updater) -> F
             "uptime_fmt": _format_uptime(uptime),
         }
 
-    @app.post("/api/server/restart")
-    async def api_restart():
+    @app.post("/api/engine/restart")
+    async def api_engine_restart():
+        """Restart the media pipeline engine subprocess only."""
         service.restart()
         return {"ok": True}
+
+    @app.post("/api/app/restart")
+    async def api_app_restart():
+        """Full restart — stop engine, re-exec the entire tray process."""
+        service.stop()
+        os.execv(sys.executable, [sys.executable, *sys.argv])
 
     @app.get("/api/update/check")
     async def api_update_check():

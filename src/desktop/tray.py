@@ -95,9 +95,15 @@ def main() -> None:
     def open_ui(icon, item):
         webbrowser.open(f"http://127.0.0.1:{config.port}")
 
-    def restart_server(icon, item):
+    def restart_engine(icon, item):
         service.restart()
         log.info("Engine restarted via tray")
+
+    def restart_app(icon, item):
+        log.info("Full app restart via tray")
+        service.stop()
+        icon.stop()
+        os.execv(sys.executable, [sys.executable] + sys.argv)
 
     def check_updates(icon, item):
         s = updater.check()
@@ -121,7 +127,8 @@ def main() -> None:
         "MediaRiver",
         menu=pystray.Menu(
             pystray.MenuItem("Open UI", open_ui, default=True),
-            pystray.MenuItem("Restart Server", restart_server),
+            pystray.MenuItem("Restart Engine", restart_engine),
+            pystray.MenuItem("Restart App", restart_app),
             pystray.MenuItem("Check for Updates", check_updates),
             pystray.Menu.SEPARATOR,
             pystray.MenuItem("Quit", quit_app),

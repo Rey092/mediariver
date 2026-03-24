@@ -60,8 +60,8 @@ class TestAPI:
         assert data["running"] is True
         assert data["uptime"] == 3600.0
 
-    def test_api_restart(self, client):
-        response = client.post("/api/server/restart")
+    def test_api_engine_restart(self, client):
+        response = client.post("/api/engine/restart")
         assert response.status_code == 200
 
     def test_api_update_check(self, client):

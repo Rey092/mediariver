@@ -8,9 +8,35 @@ Add AI-powered subtitle generation and translation to MediaRiver. Introduces a t
 
 New package `src/mediariver/ai/` with:
 
-- `base.py` — abstract `AIProvider` with a `generate(prompt, files, config) -> str` method
-- `registry.py` — `AIProviderRegistry` (same pattern as `ActionRegistry`)
-- `gemini.py` — `GeminiProvider` using `google-genai` SDK
+- `base.py` — abstract `AIProvider` base class
+- `registry.py` — factory dict mapping provider names to builder functions (same pattern as `connections/registry.py`)
+- `gemini.py` — `GeminiProvider` implementation using `google-genai` SDK
+
+### Provider Interface
+
+```python
+class AIProvider(ABC):
+    """Abstract base for AI providers."""
+
+    @abstractmethod
+    def generate(self, prompt: str, media: list[Path] | None = None) -> str:
+        """Send a prompt with optional media files, return text response.
+
+        Args:
+            prompt: The text prompt.
+            media: Optional list of file paths. The provider handles upload
+                   (inline for small files, File API for large ones).
+
+        Returns:
+            Raw text response from the model.
+        """
+```
+
+The `media` parameter is a list of `pathlib.Path` objects. The provider implementation is responsible for:
+- Detecting MIME type from file extension
+- Choosing inline vs File API upload based on file size (Gemini: inline < 20MB, File API for larger)
+- Polling for upload completion on large files
+- Cleaning up uploaded files after the request
 
 ### Provider Config (workflow YAML)
 
@@ -25,8 +51,8 @@ ai:
 ```
 
 - `{{env.X}}` templates resolved at load time (same as connections)
-- Injected into `context["_ai"]` at runtime
-- Actions look up their provider by name from the registry
+- Injected into `context["_ai"]` as **instantiated `AIProvider` objects** (not raw config)
+- Actions receive ready-to-use provider instances
 
 ### Schema Changes
 
@@ -37,7 +63,24 @@ class AIProviderConfig(BaseModel):
 
 class WorkflowSpec(BaseModel):
     # ... existing fields ...
-    ai: dict[str, AIProviderConfig] = {}
+    ai: dict[str, AIProviderConfig] = {}  # optional, workflows without AI omit this
+```
+
+Provider-specific fields (like `api_key`, `model`) pass through via `extra="allow"`. Each provider implementation validates its own required fields at instantiation time, raising clear errors for missing/invalid config.
+
+### Registry (factory pattern)
+
+Follows `connections/registry.py` — a plain dict of builder functions, not a decorator-based registry:
+
+```python
+_builders: dict[str, Callable] = {
+    "gemini": build_gemini_provider,
+}
+
+def build_ai_provider(name: str, config: AIProviderConfig) -> AIProvider:
+    if config.provider not in _builders:
+        raise KeyError(f"Unknown AI provider: '{config.provider}'")
+    return _builders[config.provider](name, config)
 ```
 
 ### Loader Changes
@@ -46,7 +89,29 @@ Resolve `{{env.X}}` in the `ai:` section at load time, same block as connections
 
 ### Runner Changes
 
-Set `context["_ai"]` from the resolved ai config before running steps.
+`PipelineRunner.__init__` gains an `ai_providers: dict[str, AIProvider] | None = None` parameter.
+
+The application layer (where workflows are loaded and connections are built) also builds AI providers:
+
+```python
+# In the application bootstrap (alongside connection building):
+ai_providers = {}
+for name, ai_config in workflow.ai.items():
+    ai_providers[name] = build_ai_provider(name, ai_config)
+
+runner = PipelineRunner(workflow, executor, connections, work_dir, ai_providers=ai_providers)
+```
+
+In `run_file()`, before the step loop:
+```python
+context["_ai"] = self.ai_providers  # dict[str, AIProvider]
+```
+
+Actions retrieve their provider:
+```python
+provider = context["_ai"][params.provider]  # returns instantiated AIProvider
+response = provider.generate(prompt, media=[input_path])
+```
 
 ## Action: `ai.subtitle`
 
@@ -57,23 +122,36 @@ Generates subtitles from audio or video files using an AI provider.
 ### Params
 
 ```python
+SUBTITLE_FORMATS = Literal["ass", "ssa", "srt", "vtt", "ttml", "sami", "microdvd", "mpl2", "tmp", "json"]
+
 class AISubtitleParams(BaseModel):
     provider: str = "gemini"
-    language: str | None = None    # source language hint, auto-detect if None
-    format: str = "vtt"            # output format (any pysubs2 format id)
+    language: str | None = None              # source language hint, auto-detect if None
+    format: SUBTITLE_FORMATS = "vtt"         # output format (pysubs2 format id)
 ```
 
 ### Behavior
 
 1. Accepts audio or video file as input
-2. Sends file to the AI provider with a prompt requesting:
-   - Timestamped transcription as structured JSON (`start_ms`, `end_ms`, `text`)
-   - Detected language as ISO 639-1 code
-3. Parses response into `pysubs2.SSAFile` events
-4. Saves in requested format via `pysubs2`
-5. Returns `ActionResult` with:
+2. Sends file to the AI provider with a prompt requesting structured JSON output:
+   - Array of `{"start_ms": int, "end_ms": int, "text": str}` objects
+   - A `"language"` field with ISO 639-1 code
+3. Parses JSON response — validates each entry has required fields, discards malformed entries with a warning log
+4. Builds `pysubs2.SSAFile` from valid entries
+5. Saves in requested format via `pysubs2`
+6. Returns `ActionResult` with:
    - `output`: path to subtitle file
    - `extras`: `language` (detected code), `format`, `line_count`
+
+### Large file handling
+
+Gemini has a ~20MB inline limit. The provider's `generate()` method handles this transparently via the File API. For very large video files, users should consider placing a `video.extract_audio` step before `ai.subtitle` to reduce upload size — this is a workflow-level optimization, not enforced by the action.
+
+### Error handling
+
+- If JSON parsing fails entirely: raise `RuntimeError` (action fails, respects `on_failure` policy)
+- If individual entries are malformed: skip them, log warning, continue with valid entries
+- If zero valid entries parsed: raise `RuntimeError`
 
 ### Workflow Usage
 
@@ -97,21 +175,28 @@ Translates subtitle files between languages. Supports all pysubs2 formats. Prese
 ```python
 class AITranslateSubtitleParams(BaseModel):
     provider: str = "gemini"
-    target_language: str                # required, e.g. "en", "ja", "uk"
-    source_language: str | None = None  # hint, auto-detect if None
-    format: str | None = None           # output format, None = same as input
+    target_language: str                         # required, e.g. "en", "ja", "uk"
+    source_language: str | None = None           # hint, auto-detect if None
+    format: SUBTITLE_FORMATS | None = None       # output format, None = same as input
+    batch_size: int = Field(default=50, ge=10, le=200)  # lines per API request
 ```
 
 ### Behavior
 
 1. Loads subtitle file with `pysubs2` (any supported format)
-2. Extracts text from events, preserving style tags separately
-3. Batches lines (~50 per request) and sends to AI provider for translation
-4. Replaces text in events with translations, styles and timing intact
+2. Extracts text from events, preserving style tags (ASS/SSA override tags like `{\b1}`) separately
+3. Batches lines by `batch_size` and sends plain text to AI provider for translation, with line numbers to maintain 1:1 mapping
+4. Parses translated lines from response, replaces text in events — styles and timing intact
 5. Saves in requested format (or same as input if not specified)
 6. Returns `ActionResult` with:
    - `output`: path to translated subtitle file
    - `extras`: `source_language`, `target_language`, `format`, `line_count`
+
+### Batching details
+
+- Default 50 lines per batch, configurable via `batch_size` param
+- If a batch fails: the action raises (fails the step). Partial translation is not saved — it's all or nothing per file to avoid half-translated output.
+- The prompt includes line numbers (e.g., `1: Hello\n2: World`) and instructs the model to return the same numbered format, ensuring 1:1 line mapping even if the model wants to merge/split lines.
 
 ### Workflow Usage
 
@@ -125,6 +210,10 @@ class AITranslateSubtitleParams(BaseModel):
     target_language: en
     format: srt
 ```
+
+## Note on Action Pattern
+
+The AI actions make HTTP API calls rather than running CLI binaries. They still receive `executor: CommandExecutor` in `run()` (the runner passes it unconditionally) but do not use it. This is the first category of actions that are API-based rather than CLI-based. The `BaseAction` interface remains unchanged.
 
 ## New Dependencies
 

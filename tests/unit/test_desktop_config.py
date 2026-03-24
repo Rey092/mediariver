@@ -1,7 +1,5 @@
 """Tests for desktop app configuration."""
 
-
-
 from desktop.config import AppConfig, load_config, save_config
 
 

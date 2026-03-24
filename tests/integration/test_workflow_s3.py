@@ -58,9 +58,16 @@ def test_video(tmp_path):
     video_path = tmp_path / "test_video.mp4"
     subprocess.run(
         [
-            "ffmpeg", "-y",
-            "-f", "lavfi", "-i", "color=c=blue:s=320x240:d=1",
-            "-f", "lavfi", "-i", "sine=f=440:d=1",
+            "ffmpeg",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=blue:s=320x240:d=1",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=f=440:d=1",
             "-shortest",
             str(video_path),
         ],
@@ -304,9 +311,9 @@ class TestWorkflowWithS3:
         db_session.commit()
 
         # Query like the watcher would
-        existing = db_session.query(ProcessedFile).filter_by(
-            workflow_name="test-idempotent", file_hash=file_hash
-        ).first()
+        existing = (
+            db_session.query(ProcessedFile).filter_by(workflow_name="test-idempotent", file_hash=file_hash).first()
+        )
         assert existing is not None
         assert existing.status == "done"
         # Watcher would skip this file — no re-processing

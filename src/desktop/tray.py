@@ -138,6 +138,7 @@ def main() -> None:
     # Watchdog
     def watchdog():
         import time
+
         nonlocal server_thread
         while True:
             time.sleep(30)
@@ -150,8 +151,10 @@ def main() -> None:
 
     # First-run: show pin notification and open UI
     if config.first_run:
+
         def _first_run():
             import time
+
             time.sleep(2)
             icon.notify(
                 "MediaRiver is running! Right-click the tray icon for options.\n"

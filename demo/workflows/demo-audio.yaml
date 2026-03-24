@@ -1,5 +1,5 @@
 name: demo-audio
-description: "Demo: probe audio, normalize loudness, convert to AAC, copy to S3"
+description: "Demo: probe audio, normalize loudness, convert to AAC, upload to S3"
 
 connections:
   local:
@@ -45,5 +45,5 @@ flow:
   - id: upload
     action: copy
     params:
-      from: "local://{{file.stem}}_normalized.m4a"
+      from: "{{steps.normalize.output}}"
       to: "output://{{file.stem}}/audio.m4a"

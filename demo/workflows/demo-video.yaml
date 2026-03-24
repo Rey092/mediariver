@@ -37,3 +37,15 @@ flow:
     params:
       mode: single
       width: 320
+
+  - id: upload_video
+    action: copy
+    params:
+      from: "{{steps.transcode.output}}"
+      to: "output://{{file.stem}}/video.mp4"
+
+  - id: upload_thumb
+    action: copy
+    params:
+      from: "{{steps.thumbnail.output}}"
+      to: "output://{{file.stem}}/thumbnail.jpg"

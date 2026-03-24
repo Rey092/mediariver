@@ -49,13 +49,17 @@ def poll_once(
         log.error("poll_listdir_failed", path=watch_config.path, error=str(e))
         return 0
 
+    log.debug("poll_entries", path=watch_config.path, count=len(entries), extensions=watch_config.extensions)
+
     for entry in entries:
         if not matches_extensions(entry, watch_config.extensions):
+            log.debug("poll_skip_ext", entry=entry)
             continue
 
         full_path = f"{watch_config.path.rstrip('/')}/{entry}"
 
         if is_known(watch_config.connection, full_path):
+            log.debug("poll_skip_known", entry=entry, path=full_path)
             continue
 
         try:

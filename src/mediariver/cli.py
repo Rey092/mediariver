@@ -71,10 +71,12 @@ def run(
                 session = get_session(engine)
 
                 def is_known(conn: str, path: str) -> bool:
-                    return (
-                        session.query(ProcessedFile).filter_by(workflow_name=spec.name, file_path=path).first()
-                        is not None
-                    )
+                    result = session.query(ProcessedFile).filter_by(
+                        workflow_name=spec.name, file_path=path
+                    ).first()
+                    if result:
+                        log.debug("is_known_hit", path=path, status=result.status, wf=spec.name)
+                    return result is not None
 
                 def on_new_file(path: str, file_hash: str, file_size: int) -> None:
                     existing = (
@@ -124,7 +126,8 @@ def run(
 
                     log.info("file_processed", workflow=spec.name, file=path, status=result["status"])
 
-                poll_once(watch_fs, spec.watch, is_known, on_new_file)
+                new_count = poll_once(watch_fs, spec.watch, is_known, on_new_file)
+                log.info("poll_complete", workflow=spec.name, new_files=new_count)
                 session.close()
 
                 import contextlib
@@ -247,7 +250,7 @@ def reset(
     if file_status:
         query = query.filter_by(status=file_status)
 
-    count = query.delete()
+    count = query.delete(synchronize_session="fetch")
     session.commit()
     session.close()
     typer.echo(f"Deleted {count} record(s) for '{workflow_name}'.")

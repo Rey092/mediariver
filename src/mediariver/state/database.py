@@ -10,7 +10,8 @@ from sqlalchemy.orm import Session
 from mediariver.state.models import Base
 
 _DEFAULT_DB_DIR = Path.home() / ".mediariver"
-_DEFAULT_DB_URL = f"sqlite:///{_DEFAULT_DB_DIR}/state.db"
+_DEFAULT_DB_PATH = (_DEFAULT_DB_DIR / "state.db").resolve()
+_DEFAULT_DB_URL = f"sqlite:///{_DEFAULT_DB_PATH}"
 
 
 def create_db_engine(database_url: str | None = None) -> Engine:

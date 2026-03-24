@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
 from typing import Any
 
 from fs.copy import copy_file
+from fs.osfs import OSFS
 from pydantic import BaseModel, ConfigDict, Field
 
 from mediariver.actions.base import ActionResult, BaseAction
@@ -29,13 +32,22 @@ class MoveAction(BaseAction):
         self, context: dict[str, Any], params: MoveParams, executor: CommandExecutor, resolved_input: str | None = None
     ) -> ActionResult:
         connections = context.get("_connections", {})
-        src_fs, src_path = resolve_connection_uri(params.from_path, connections)
         dst_fs, dst_path = resolve_connection_uri(params.to_path, connections)
 
         parent = "/".join(dst_path.split("/")[:-1])
         if parent:
             dst_fs.makedirs(parent, recreate=True)
 
-        copy_file(src_fs, src_path, dst_fs, dst_path)
-        src_fs.remove(src_path)
+        from_path = params.from_path
+        if os.path.isabs(from_path) or (len(from_path) > 1 and from_path[1] == ":"):
+            p = Path(from_path)
+            src_fs = OSFS(str(p.parent))
+            copy_file(src_fs, p.name, dst_fs, dst_path)
+            src_fs.close()
+            p.unlink()
+        else:
+            src_fs, src_path = resolve_connection_uri(from_path, connections)
+            copy_file(src_fs, src_path, dst_fs, dst_path)
+            src_fs.remove(src_path)
+
         return ActionResult(status="done", output=params.to_path)

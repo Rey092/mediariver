@@ -1,6 +1,23 @@
 # CHANGELOG
 
 
+## v0.8.4 (2026-03-24)
+
+### Bug Fixes
+
+- Auto-migrate DB unique constraint from file_hash to file_path
+  ([`48f10c3`](https://github.com/Rey092/mediariver/commit/48f10c3b30ab847f6d5a99036b08194d036a19d0))
+
+SQLite can't ALTER constraints, so the migration recreates the table. Runs automatically on startup
+  — existing data is preserved. Files with identical content but different names are now tracked
+  separately.
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
+- Use file_path for idempotency + auto-migrate DB constraint
+  ([`da5bf0e`](https://github.com/Rey092/mediariver/commit/da5bf0e445819d233c80609708d5cd665475d202))
+
+
 ## v0.8.3 (2026-03-24)
 
 ### Bug Fixes
@@ -16,6 +33,11 @@ Previously, files with identical content (same hash) but different names were si
   this change
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
+### Chores
+
+- Merge branch 'main' of https://github.com/Rey092/mediariver
+  ([`ee4499f`](https://github.com/Rey092/mediariver/commit/ee4499fadc5d49e419e37fb0984106bcaa75647b))
 
 
 ## v0.8.2 (2026-03-24)

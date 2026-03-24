@@ -53,10 +53,22 @@ def run(
     engine = create_db_engine(database_url)
     create_tables(engine)
     executor = CommandExecutor()
-    log.info("mediariver_starting", workflows=[s.name for s in specs])
 
     # Import actions to trigger registration
     import mediariver.actions  # noqa: F401
+
+    from mediariver.actions.registry import ActionRegistry
+
+    # Startup info
+    log.info(
+        "mediariver_starting",
+        version=mediariver.__version__,
+        workflows=[s.name for s in specs],
+        actions=len(ActionRegistry.list_actions()),
+    )
+
+    # Detect hardware capabilities
+    _log_hardware_info(executor, log)
 
     try:
         while True:
@@ -254,6 +266,42 @@ def reset(
     session.commit()
     session.close()
     typer.echo(f"Deleted {count} record(s) for '{workflow_name}'.")
+
+
+def _log_hardware_info(executor, log) -> None:  # noqa: ANN001
+    """Detect and log hardware capabilities on startup."""
+    import shutil
+
+    # ffmpeg
+    ffmpeg_path = shutil.which("ffmpeg")
+    if ffmpeg_path:
+        ver = executor.run(binary="ffmpeg", args=["-version"], docker_image="")
+        first_line = ver.stdout.split("\n")[0] if ver.stdout else "unknown"
+        log.info("ffmpeg_detected", path=ffmpeg_path, version=first_line)
+    else:
+        log.warning("ffmpeg_not_found", fallback="docker")
+
+    # GPU / NVENC
+    if ffmpeg_path:
+        enc = executor.run(binary="ffmpeg", args=["-hide_banner", "-encoders"], docker_image="")
+        gpu_encoders = []
+        for line in enc.stdout.splitlines():
+            if "nvenc" in line.lower():
+                name = line.split()[1] if len(line.split()) > 1 else line.strip()
+                gpu_encoders.append(name)
+        if gpu_encoders:
+            log.info("gpu_detected", encoders=gpu_encoders, hw_accel="nvenc")
+        else:
+            log.info("gpu_not_detected", hw_accel="cpu-only")
+
+    # Docker
+    docker_path = shutil.which("docker")
+    if docker_path:
+        docker_ver = executor.run(binary="docker", args=["--version"], docker_image="")
+        ver_str = docker_ver.stdout.strip() if docker_ver.returncode == 0 else "unknown"
+        log.info("docker_detected", version=ver_str)
+    else:
+        log.info("docker_not_available", note="actions requiring docker will fail")
 
 
 @app.callback()

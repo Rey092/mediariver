@@ -231,7 +231,7 @@ def create_app(config: AppConfig, service: EngineService, updater: Updater) -> F
         with contextlib.suppress(Exception):
             update_status = updater.check()
         startup_enabled = _check_startup_task()
-        from mediariver.state.database import _DEFAULT_DB_URL
+        default_db = str((Path.home() / ".mediariver" / "state.db").resolve())
         return templates.TemplateResponse(request, "settings.html", {
             "page": "settings",
             "config": config,
@@ -239,7 +239,7 @@ def create_app(config: AppConfig, service: EngineService, updater: Updater) -> F
             "current_version": current_version,
             "update_status": update_status,
             "startup_enabled": startup_enabled,
-            "default_db_url": _DEFAULT_DB_URL,
+            "default_db_url": f"sqlite:///{default_db}",
         })
 
     # ── API routes ─────────────────────────────────────────────────────

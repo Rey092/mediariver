@@ -309,6 +309,55 @@ def create_app(config: AppConfig, service: EngineService, updater: Updater) -> F
         save_config(config)
         return {"ok": True}
 
+    @app.post("/api/files/{file_id}/reprocess", response_class=HTMLResponse)
+    async def api_reprocess_file(file_id: int):
+        """Reset a single file to pending so it gets reprocessed."""
+        from mediariver.state.database import create_db_engine, get_session
+        from mediariver.state.models import ProcessedFile
+
+        engine = create_db_engine(config.database_url)
+        with get_session(engine) as session:
+            pf = session.get(ProcessedFile, file_id)
+            if not pf:
+                return HTMLResponse("Not found", status_code=404)
+            pf.status = "pending"
+            pf.error = None
+            pf.current_step = None
+            pf.attempts = 0
+            session.commit()
+            return (
+                f'<tr id="file-row-{pf.id}">'
+                f'<td>{pf.workflow_name}</td>'
+                f'<td class="truncate" title="{pf.file_path}">{pf.file_path}</td>'
+                f'<td><span class="badge badge-pending">pending</span></td>'
+                f'<td>-</td><td>-</td>'
+                f'<td class="text-sm">{pf.updated_at}</td>'
+                f'<td></td></tr>'
+            )
+
+    @app.post("/api/files/reprocess-all")
+    async def api_reprocess_all(workflow: str = "", status: str = ""):
+        """Reset all matching files to pending."""
+        from mediariver.state.database import create_db_engine, get_session
+        from mediariver.state.models import ProcessedFile
+
+        engine = create_db_engine(config.database_url)
+        with get_session(engine) as session:
+            query = session.query(ProcessedFile)
+            if workflow:
+                query = query.filter_by(workflow_name=workflow)
+            if status:
+                query = query.filter_by(status=status)
+            for pf in query.all():
+                pf.status = "pending"
+                pf.error = None
+                pf.current_step = None
+                pf.attempts = 0
+            session.commit()
+        from starlette.responses import RedirectResponse
+        params = f"?workflow={workflow}&status=" if workflow else ""
+        return RedirectResponse(f"/files{params}", status_code=303)
+
     @app.get("/api/logs/stream")
     async def api_logs_stream():
         async def generate():

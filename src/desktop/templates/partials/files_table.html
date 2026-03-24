@@ -1,3 +1,14 @@
+<div style="display: flex; gap: 12px; margin-bottom: 12px;">
+    {% if files %}
+    <button class="btn btn-accent"
+        hx-post="/api/files/reprocess-all?workflow={{ current_workflow or '' }}&status={{ current_status or '' }}"
+        hx-target="#files-table" hx-swap="innerHTML"
+        hx-confirm="Reset {{ total }} file(s) to pending for reprocessing?">
+        Reprocess All ({{ total }})
+    </button>
+    {% endif %}
+</div>
+
 <table>
     <thead>
         <tr>
@@ -7,20 +18,29 @@
             <th>Current Step</th>
             <th>Error</th>
             <th>Updated</th>
+            <th></th>
         </tr>
     </thead>
     <tbody>
         {% for f in files %}
-        <tr>
+        <tr id="file-row-{{ f.id }}">
             <td>{{ f.workflow_name }}</td>
             <td class="truncate" title="{{ f.file_path }}">{{ f.file_path }}</td>
             <td><span class="badge badge-{{ f.status }}">{{ f.status }}</span></td>
             <td>{{ f.current_step or "-" }}</td>
             <td class="truncate" title="{{ f.error or '' }}">{{ f.error or "-" }}</td>
             <td class="text-sm">{{ f.updated_at }}</td>
+            <td>
+                {% if f.status in ("done", "failed") %}
+                <button class="btn btn-sm"
+                    hx-post="/api/files/{{ f.id }}/reprocess"
+                    hx-target="#file-row-{{ f.id }}"
+                    hx-swap="outerHTML">Reprocess</button>
+                {% endif %}
+            </td>
         </tr>
         {% else %}
-        <tr><td colspan="6" class="text-muted">No files found.</td></tr>
+        <tr><td colspan="7" class="text-muted">No files found.</td></tr>
         {% endfor %}
     </tbody>
 </table>

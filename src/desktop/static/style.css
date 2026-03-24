@@ -157,6 +157,11 @@ button:hover, .btn:hover {
     background: #4a4a4a;
 }
 
+.btn-sm {
+    padding: 4px 10px;
+    font-size: 0.78rem;
+}
+
 .btn-accent {
     background: #2563eb;
     border-color: #2563eb;

@@ -17,6 +17,7 @@ class AppConfig:
     log_level: str = "info"
     port: int = 9876
     env: dict[str, str] = field(default_factory=dict)
+    first_run: bool = True
 
 
 def load_config(path: Path = DEFAULT_CONFIG_PATH) -> AppConfig:

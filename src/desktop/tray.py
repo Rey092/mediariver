@@ -15,7 +15,7 @@ import pystray
 import uvicorn
 from PIL import Image, ImageDraw
 
-from desktop.config import DEFAULT_CONFIG_PATH, load_config
+from desktop.config import DEFAULT_CONFIG_PATH, load_config, save_config
 from desktop.server import create_app
 from desktop.service import EngineService
 from desktop.updater import Updater
@@ -140,6 +140,22 @@ def main() -> None:
                 server_thread.start()
 
     threading.Thread(target=watchdog, daemon=True).start()
+
+    # First-run: show pin notification and open UI
+    if config.first_run:
+        def _first_run():
+            import time
+            time.sleep(2)
+            icon.notify(
+                "MediaRiver is running! Right-click the tray icon for options.\n"
+                "Tip: Pin this icon — go to Settings > Taskbar > Other system tray icons > MediaRiver",
+                "MediaRiver",
+            )
+            webbrowser.open(f"http://127.0.0.1:{config.port}")
+            config.first_run = False
+            save_config(config)
+
+        threading.Thread(target=_first_run, daemon=True).start()
 
     log.info("Tray icon ready")
     icon.run()

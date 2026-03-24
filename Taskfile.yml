@@ -1,0 +1,127 @@
+version: "3"
+
+tasks:
+  # --- Development ---
+
+  install:
+    desc: Install mediariver with all extras
+    cmds:
+      - uv sync --extra dev --extra desktop
+
+  test:
+    desc: Run unit tests
+    cmds:
+      - uv run pytest tests/unit/ -v
+
+  test-integration:
+    desc: Run integration tests (requires MinIO)
+    cmds:
+      - uv run pytest tests/integration/ -v
+
+  lint:
+    desc: Run ruff linter
+    cmds:
+      - uv run ruff check src/ tests/
+
+  format:
+    desc: Format code with ruff
+    cmds:
+      - uv run ruff format src/ tests/
+
+  validate:
+    desc: Validate workflow YAML files
+    cmds:
+      - uv run mediariver validate --workflows-dir workflows/
+
+  # --- Desktop App ---
+
+  desktop:run:
+    desc: Launch the desktop tray app
+    cmds:
+      - uv run python src/desktop/tray.py
+
+  desktop:install:
+    desc: Install MediaRiver as a Windows desktop app (startup + shortcut)
+    platforms: [windows]
+    cmds:
+      - task: desktop:register-startup
+      - task: desktop:create-shortcut
+      - cmd: echo "Desktop app installed. Run 'task desktop:run' or find MediaRiver in Start Menu."
+
+  desktop:uninstall:
+    desc: Remove Windows startup task and Start Menu shortcut
+    platforms: [windows]
+    cmds:
+      - task: desktop:remove-startup
+      - task: desktop:remove-shortcut
+      - cmd: echo "Desktop app uninstalled."
+
+  desktop:register-startup:
+    desc: Register Windows startup task (30s delay after logon)
+    platforms: [windows]
+    cmds:
+      - cmd: powershell -File installer/register-startup.ps1
+
+  desktop:remove-startup:
+    desc: Remove Windows startup task
+    platforms: [windows]
+    cmds:
+      - cmd: "powershell -Command \"Unregister-ScheduledTask -TaskName 'MediaRiver' -Confirm:$false -ErrorAction SilentlyContinue; Write-Host 'Startup task removed'\""
+
+  desktop:create-shortcut:
+    desc: Create Start Menu shortcut
+    platforms: [windows]
+    cmds:
+      - cmd: powershell -File installer/create-shortcut.ps1
+
+  desktop:remove-shortcut:
+    desc: Remove Start Menu shortcut
+    platforms: [windows]
+    cmds:
+      - cmd: "powershell -Command \"Remove-Item '$env:APPDATA\\Microsoft\\Windows\\Start Menu\\Programs\\MediaRiver.lnk' -ErrorAction SilentlyContinue; Write-Host 'Shortcut removed'\""
+
+  desktop:status:
+    desc: Check if startup task and shortcut exist
+    platforms: [windows]
+    cmds:
+      - cmd: "powershell -Command \"if (Get-ScheduledTask -TaskName 'MediaRiver' -ErrorAction SilentlyContinue) { Write-Host 'Startup task = REGISTERED' -ForegroundColor Green } else { Write-Host 'Startup task = NOT FOUND' -ForegroundColor Red }\""
+      - cmd: "powershell -Command \"if (Test-Path '$env:APPDATA\\Microsoft\\Windows\\Start Menu\\Programs\\MediaRiver.lnk') { Write-Host 'Shortcut = EXISTS' -ForegroundColor Green } else { Write-Host 'Shortcut = NOT FOUND' -ForegroundColor Red }\""
+
+  # --- Docker ---
+
+  docker:build:
+    desc: Build Docker image (CPU)
+    cmds:
+      - docker build --target base -t mediariver:latest .
+
+  docker:build-gpu:
+    desc: Build Docker image (GPU/NVENC)
+    cmds:
+      - docker build --target gpu -t mediariver:gpu .
+
+  docker:demo:
+    desc: Run demo with Docker Compose (MinIO + MediaRiver)
+    cmds:
+      - docker compose -f demo/docker-compose.yml up
+
+  docker:demo-down:
+    desc: Stop demo containers
+    cmds:
+      - docker compose -f demo/docker-compose.yml down -v
+
+  # --- CLI ---
+
+  run:
+    desc: Run mediariver engine
+    cmds:
+      - uv run mediariver run --workflows-dir {{.CLI_ARGS | default "./workflows"}}
+
+  status:
+    desc: Show processed file status
+    cmds:
+      - uv run mediariver status
+
+  reset:
+    desc: "Reset state for a workflow (usage: task reset -- workflow-name)"
+    cmds:
+      - uv run mediariver reset {{.CLI_ARGS}}

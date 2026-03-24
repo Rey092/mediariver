@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     services:
       minio:
-        image: minio/minio
+        image: bitnami/minio:latest
         ports:
           - 9000:9000
         env:
@@ -21,7 +21,8 @@ jobs:
           --health-cmd "curl -f http://localhost:9000/minio/health/live"
           --health-interval 10s
           --health-timeout 5s
-          --health-retries 3
+          --health-retries 5
+          --health-start-period 15s
 
     steps:
       - uses: actions/checkout@v4

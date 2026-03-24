@@ -85,9 +85,12 @@ def run(
                     result = session.query(ProcessedFile).filter_by(
                         workflow_name=spec.name, file_path=path
                     ).first()
-                    if result:
-                        log.debug("is_known_hit", path=path, status=result.status, wf=spec.name)
-                    return result is not None
+                    if not result:
+                        return False
+                    # Skip done and running files; pending and failed should be picked up
+                    if result.status in ("done", "running"):
+                        return True
+                    return False
 
                 def on_new_file(path: str, file_hash: str, file_size: int) -> None:
                     existing = session.query(ProcessedFile).filter_by(

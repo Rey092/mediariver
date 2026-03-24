@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.5.2 (2026-03-24)
+
+### Bug Fixes
+
+- Use twine for PyPI publish instead of trusted publishing
+  ([`49414a9`](https://github.com/Rey092/mediariver/commit/49414a91dde50398c022db19afeaef3d8e50f13d))
+
+Trusted publishing doesn't support reusable workflows. Use PYPI_TOKEN secret with twine upload
+  instead.
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
+
 ## v0.5.1 (2026-03-24)
 
 ### Bug Fixes

@@ -98,7 +98,7 @@ class EngineService:
         if not self._process or not self._process.stdout:
             return
         for line in self._process.stdout:
-            stripped = line.rstrip("\n")
+            stripped = line.strip()
             if stripped:
                 with self._log_lock:
                     self._logs.append(stripped)

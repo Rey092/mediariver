@@ -8,38 +8,67 @@
     <button class="btn" onclick="filterLogs('info')">Info</button>
     <button class="btn" onclick="filterLogs('warning')">Warning</button>
     <button class="btn" onclick="filterLogs('error')">Error</button>
+    <span class="text-sm" style="color: #888; margin-left: 12px;" id="log-count">{{ initial_logs|length }} lines</span>
 </div>
 
 <div class="log-viewer" id="log-viewer">
     <div id="log-lines">
-        {% for line in initial_logs %}
-        <div>{{ line }}</div>
-        {% endfor %}
+        {% for line in initial_logs %}<div class="log-line">{{ line }}</div>
+{% endfor %}
     </div>
 </div>
 
 <script>
 (function() {
-    const source = new EventSource('/api/logs/stream');
+    var MAX_LINES = 500;
+    var viewer = document.getElementById('log-viewer');
+    var container = document.getElementById('log-lines');
+    var countEl = document.getElementById('log-count');
+
+    // Auto-scroll to bottom on load
+    viewer.scrollTop = viewer.scrollHeight;
+
+    // SSE live stream
+    var source = new EventSource('/api/logs/stream');
     source.onmessage = function(e) {
-        const container = document.getElementById('log-lines');
-        const div = document.createElement('div');
-        div.textContent = e.data;
+        var line = e.data.trim();
+        if (!line) return;
+
+        var div = document.createElement('div');
+        div.className = 'log-line';
+        div.textContent = line;
         container.appendChild(div);
-        const viewer = document.getElementById('log-viewer');
-        viewer.scrollTop = viewer.scrollHeight;
+
+        // Cap at MAX_LINES
+        while (container.children.length > MAX_LINES) {
+            container.removeChild(container.firstChild);
+        }
+
+        // Update count
+        countEl.textContent = container.children.length + ' lines';
+
+        // Auto-scroll if near bottom
+        var atBottom = (viewer.scrollHeight - viewer.scrollTop - viewer.clientHeight) < 100;
+        if (atBottom) {
+            viewer.scrollTop = viewer.scrollHeight;
+        }
     };
 })();
 
 function filterLogs(level) {
-    const lines = document.querySelectorAll('#log-lines div');
+    var lines = document.querySelectorAll('#log-lines .log-line');
+    var visible = 0;
     lines.forEach(function(el) {
         if (!level) {
             el.style.display = '';
+            visible++;
         } else {
-            el.style.display = el.textContent.toLowerCase().indexOf(level) !== -1 ? '' : 'none';
+            var match = el.textContent.toLowerCase().indexOf('[' + level) !== -1;
+            el.style.display = match ? '' : 'none';
+            if (match) visible++;
         }
     });
+    document.getElementById('log-count').textContent = visible + ' lines';
 }
 </script>
 {% endblock %}

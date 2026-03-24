@@ -30,9 +30,17 @@ services:
     build:
       context: ..
       dockerfile: Dockerfile
+      target: gpu
     depends_on:
       minio-init:
         condition: service_completed_successfully
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu, video]
     environment:
       S3_BUCKET: demo-bucket
       S3_ENDPOINT: http://minio:9000

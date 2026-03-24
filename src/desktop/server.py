@@ -172,6 +172,7 @@ def create_app(config: AppConfig, service: EngineService, updater: Updater) -> F
                     q = q.filter(ProcessedFile.workflow_name == workflow)
                 if status:
                     q = q.filter(ProcessedFile.status == status)
+                total = q.count()
                 q = q.order_by(ProcessedFile.updated_at.desc())
                 files = q.offset(offset).limit(limit + 1).all()
                 if len(files) > limit:
@@ -180,11 +181,12 @@ def create_app(config: AppConfig, service: EngineService, updater: Updater) -> F
                 wf_rows = session.query(ProcessedFile.workflow_name).distinct().all()
                 workflows_list = [r[0] for r in wf_rows]
         except Exception:
-            pass
+            total = 0
 
         ctx = {
             "page": "files",
             "files": files,
+            "total": total,
             "workflows": workflows_list,
             "current_workflow": workflow,
             "current_status": status,

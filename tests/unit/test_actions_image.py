@@ -150,7 +150,8 @@ class TestImageUpscaleAction:
         assert result.status == "done"
         mock_executor.run.assert_called_once()
         call_kwargs = mock_executor.run.call_args.kwargs
-        assert call_kwargs.get("strategy") == "docker"
+        assert call_kwargs.get("strategy") == "auto"
+        assert call_kwargs.get("gpu") is True
 
 
 class TestImageOrientationCheckAction:

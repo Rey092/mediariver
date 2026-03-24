@@ -32,7 +32,11 @@ def _migrate_unique_constraint(engine: Engine) -> None:
     """Migrate from (workflow_name, file_hash) to (workflow_name, file_path) unique constraint.
 
     SQLite can't ALTER constraints, so we recreate the table.
+    Skipped for non-SQLite backends which handle migrations via CREATE TABLE.
     """
+    if engine.dialect.name != "sqlite":
+        return
+
     from sqlalchemy import inspect, text
 
     insp = inspect(engine)

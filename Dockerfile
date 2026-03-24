@@ -22,15 +22,24 @@ ENTRYPOINT ["mediariver"]
 CMD ["run", "--workflows-dir", "/workflows"]
 
 
-# --- GPU image (NVIDIA CUDA + NVENC) ---
+# --- GPU image (NVIDIA CUDA + NVENC + AI upscale) ---
 FROM nvidia/cuda:12.6.3-runtime-ubuntu24.04 AS gpu
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 python3-pip python3-venv \
     ffmpeg \
     exiftool \
+    imagemagick \
     libnvidia-encode-570 \
+    libpq-dev \
+    wget unzip \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Real-ESRGAN (AI upscaler for manga/anime art)
+RUN wget -q https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/realesrgan-ncnn-vulkan-20220424-ubuntu.zip \
+    && unzip -q realesrgan-ncnn-vulkan-*.zip -d /opt/realesrgan \
+    && ln -s /opt/realesrgan/realesrgan-ncnn-vulkan /usr/local/bin/realesrgan-ncnn-vulkan \
+    && rm realesrgan-ncnn-vulkan-*.zip
 
 WORKDIR /app
 
@@ -38,9 +47,8 @@ COPY pyproject.toml .
 COPY src/ src/
 
 RUN pip install --no-cache-dir --break-system-packages "setuptools<81" && \
-    pip install --no-cache-dir --break-system-packages .
+    pip install --no-cache-dir --break-system-packages ".[postgres]"
 
-ENV MEDIARIVER_STATE_DB=/data/state.db
 ENV MEDIARIVER_WORKFLOWS_DIR=/workflows
 ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=video,compute,utility

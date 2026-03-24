@@ -69,7 +69,8 @@ class ImageUpscaleAction(BaseAction):
             binary=binary,
             args=args,
             docker_image=docker_image,
-            strategy="docker",
+            strategy="auto",
+            gpu=True,
         )
 
         if result.returncode != 0:

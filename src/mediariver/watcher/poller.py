@@ -41,34 +41,38 @@ def poll_once(
     is_known: Callable[[str, str], bool],
     on_new_file: Callable[[str, str, int], None],
 ) -> int:
-    """Poll a directory once and process new files."""
+    """Poll a directory once and process new files.
+
+    Walks subdirectories recursively so nested structures
+    (e.g. S3 prefix ``manga/chapters/{id}/{ch}/001.png``) are discovered.
+    """
     new_count = 0
+    watch_path = watch_config.path.rstrip("/") or "/"
+
     try:
-        entries = fs.listdir(watch_config.path)
+        for dir_path, _dirs, files in fs.walk.walk(watch_path):
+            for file_info in files:
+                entry = file_info.name
+                if not matches_extensions(entry, watch_config.extensions):
+                    continue
+
+                full_path = f"{dir_path.rstrip('/')}/{entry}"
+
+                if is_known(watch_config.connection, full_path):
+                    log.debug("poll_skip_known", entry=entry, path=full_path)
+                    continue
+
+                try:
+                    file_hash = compute_file_hash(fs, full_path)
+                    info = fs.getinfo(full_path, namespaces=["details"])
+                    file_size = info.size or 0
+                    on_new_file(full_path, file_hash, file_size)
+                    new_count += 1
+                except Exception as e:
+                    log.error("poll_file_error", path=full_path, error=str(e))
     except Exception as e:
-        log.error("poll_listdir_failed", path=watch_config.path, error=str(e))
+        log.error("poll_walk_failed", path=watch_path, error=str(e))
         return 0
 
-    log.debug("poll_entries", path=watch_config.path, count=len(entries), extensions=watch_config.extensions)
-
-    for entry in entries:
-        if not matches_extensions(entry, watch_config.extensions):
-            log.debug("poll_skip_ext", entry=entry)
-            continue
-
-        full_path = f"{watch_config.path.rstrip('/')}/{entry}"
-
-        if is_known(watch_config.connection, full_path):
-            log.debug("poll_skip_known", entry=entry, path=full_path)
-            continue
-
-        try:
-            file_hash = compute_file_hash(fs, full_path)
-            info = fs.getinfo(full_path, namespaces=["details"])
-            file_size = info.size or 0
-            on_new_file(full_path, file_hash, file_size)
-            new_count += 1
-        except Exception as e:
-            log.error("poll_file_error", path=full_path, error=str(e))
-
+    log.debug("poll_complete_walk", path=watch_path, new_files=new_count)
     return new_count

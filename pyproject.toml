@@ -23,6 +23,7 @@ dependencies = [
 [project.optional-dependencies]
 ftp = []
 sftp = ["fs.sshfs>=1.0"]
+postgres = ["psycopg2-binary>=2.9"]
 desktop = [
     "pystray>=0.19",
     "Pillow>=10.0",

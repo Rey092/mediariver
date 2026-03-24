@@ -90,9 +90,9 @@ def run(
                     return result is not None
 
                 def on_new_file(path: str, file_hash: str, file_size: int) -> None:
-                    existing = (
-                        session.query(ProcessedFile).filter_by(workflow_name=spec.name, file_hash=file_hash).first()
-                    )
+                    existing = session.query(ProcessedFile).filter_by(
+                        workflow_name=spec.name, file_path=path
+                    ).first()
                     if existing and existing.status == "done":
                         return
 

@@ -15,7 +15,7 @@ class Base(DeclarativeBase):
 
 class ProcessedFile(Base):
     __tablename__ = "processed_files"
-    __table_args__ = (UniqueConstraint("workflow_name", "file_hash"),)
+    __table_args__ = (UniqueConstraint("workflow_name", "file_path"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     workflow_name: Mapped[str] = mapped_column(String, nullable=False)

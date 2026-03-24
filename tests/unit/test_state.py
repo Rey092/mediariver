@@ -35,6 +35,7 @@ class TestProcessedFile:
         assert result.attempts == 0
 
     def test_unique_constraint(self, db_session):
+        """Same workflow + same file_path = conflict."""
         pf1 = ProcessedFile(
             workflow_name="wf",
             file_path="/a.mp4",
@@ -44,9 +45,9 @@ class TestProcessedFile:
         )
         pf2 = ProcessedFile(
             workflow_name="wf",
-            file_path="/b.mp4",
-            file_hash="hash1",
-            file_size=100,
+            file_path="/a.mp4",
+            file_hash="hash2",
+            file_size=200,
             status="pending",
         )
         db_session.add(pf1)

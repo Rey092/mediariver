@@ -48,7 +48,8 @@ def _migrate_unique_constraint(engine: Engine) -> None:
     # Need migration: recreate table with new constraint
     with engine.begin() as conn:
         conn.execute(text("ALTER TABLE processed_files RENAME TO _processed_files_old"))
-        conn.execute(text("""
+        conn.execute(
+            text("""
             CREATE TABLE processed_files (
                 id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
                 workflow_name VARCHAR NOT NULL,
@@ -64,15 +65,18 @@ def _migrate_unique_constraint(engine: Engine) -> None:
                 updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE (workflow_name, file_path)
             )
-        """))
-        conn.execute(text("""
+        """)
+        )
+        conn.execute(
+            text("""
             INSERT INTO processed_files
                 (id, workflow_name, file_path, file_hash, file_size, status,
                  current_step, step_results, error, attempts, created_at, updated_at)
             SELECT id, workflow_name, file_path, file_hash, file_size, status,
                    current_step, step_results, error, attempts, created_at, updated_at
             FROM _processed_files_old
-        """))
+        """)
+        )
         conn.execute(text("DROP TABLE _processed_files_old"))
 
 

@@ -23,8 +23,14 @@ PRESETS: dict[str, dict[str, Any]] = {
 }
 
 _VALID_PRESETS = Literal[
-    "h264-web", "h264-fast", "h265-fast", "h265-10bit",
-    "nvenc-h264", "nvenc-h265", "vp9", "av1",
+    "h264-web",
+    "h264-fast",
+    "h265-fast",
+    "h265-10bit",
+    "nvenc-h264",
+    "nvenc-h265",
+    "vp9",
+    "av1",
 ]
 
 
@@ -114,9 +120,18 @@ class VideoTranscodeAction(BaseAction):
             probe = executor.run(
                 binary="ffmpeg",
                 args=[
-                    "-hide_banner", "-loglevel", "error",
-                    "-f", "lavfi", "-i", "nullsrc=s=16x16:d=0.01",
-                    "-c:v", "h264_nvenc", "-f", "null", "-",
+                    "-hide_banner",
+                    "-loglevel",
+                    "error",
+                    "-f",
+                    "lavfi",
+                    "-i",
+                    "nullsrc=s=16x16:d=0.01",
+                    "-c:v",
+                    "h264_nvenc",
+                    "-f",
+                    "null",
+                    "-",
                 ],
                 docker_image="mediariver/ffmpeg:latest",
             )

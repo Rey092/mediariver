@@ -56,12 +56,14 @@ def _format_uptime(seconds: float) -> str:
 def _check_startup_task() -> bool:
     """Check if the MediaRiver scheduled task exists on Windows."""
     import sys
+
     if sys.platform != "win32":
         return False
     try:
         result = subprocess.run(
             ["powershell", "-Command", "Get-ScheduledTask -TaskName 'MediaRiver' -ErrorAction Stop"],
-            capture_output=True, timeout=5,
+            capture_output=True,
+            timeout=5,
         )
         return result.returncode == 0
     except (FileNotFoundError, subprocess.TimeoutExpired):
@@ -71,17 +73,19 @@ def _check_startup_task() -> bool:
 def _set_startup_task(enable: bool) -> None:
     """Register or unregister the Windows startup scheduled task."""
     import sys
+
     if sys.platform != "win32":
         return
 
     if not enable:
         subprocess.run(
             [
-                "powershell", "-Command",
-                "Unregister-ScheduledTask -TaskName 'MediaRiver'"
-                " -Confirm:$false -ErrorAction SilentlyContinue",
+                "powershell",
+                "-Command",
+                "Unregister-ScheduledTask -TaskName 'MediaRiver' -Confirm:$false -ErrorAction SilentlyContinue",
             ],
-            capture_output=True, timeout=10,
+            capture_output=True,
+            timeout=10,
         )
         return
 
@@ -91,7 +95,8 @@ def _set_startup_task(enable: bool) -> None:
     if register_script.exists():
         subprocess.run(
             ["powershell", "-File", str(register_script)],
-            capture_output=True, timeout=15,
+            capture_output=True,
+            timeout=15,
         )
     else:
         # Fallback: inline registration
@@ -122,11 +127,7 @@ def _get_db_stats(config: AppConfig) -> dict:
 
         engine = create_db_engine(config.database_url)
         with get_session(engine) as session:
-            rows = (
-                session.query(ProcessedFile.status, func.count())
-                .group_by(ProcessedFile.status)
-                .all()
-            )
+            rows = session.query(ProcessedFile.status, func.count()).group_by(ProcessedFile.status).all()
             for status, count in rows:
                 stats["total"] += count
                 if status in stats:
@@ -151,13 +152,17 @@ def create_app(config: AppConfig, service: EngineService, updater: Updater) -> F
         uptime = service.get_uptime()
         stats = _get_db_stats(config)
         gpu_encoders = _detect_gpu_encoders()
-        return templates.TemplateResponse(request, "dashboard.html", {
-            "page": "dashboard",
-            "running": running,
-            "uptime_fmt": _format_uptime(uptime),
-            "stats": stats,
-            "gpu_encoders": gpu_encoders,
-        })
+        return templates.TemplateResponse(
+            request,
+            "dashboard.html",
+            {
+                "page": "dashboard",
+                "running": running,
+                "uptime_fmt": _format_uptime(uptime),
+                "stats": stats,
+                "gpu_encoders": gpu_encoders,
+            },
+        )
 
     @app.get("/files", response_class=HTMLResponse)
     async def files_page(
@@ -221,19 +226,27 @@ def create_app(config: AppConfig, service: EngineService, updater: Updater) -> F
                 except Exception as e:
                     entry["error"] = str(e)
                 workflows.append(entry)
-        return templates.TemplateResponse(request, "workflows.html", {
-            "page": "workflows",
-            "workflows": workflows,
-            "workflows_dir": config.workflows_dir,
-        })
+        return templates.TemplateResponse(
+            request,
+            "workflows.html",
+            {
+                "page": "workflows",
+                "workflows": workflows,
+                "workflows_dir": config.workflows_dir,
+            },
+        )
 
     @app.get("/logs", response_class=HTMLResponse)
     async def logs_page(request: Request):
         initial_logs = service.get_logs(last_n=500)
-        return templates.TemplateResponse(request, "logs.html", {
-            "page": "logs",
-            "initial_logs": initial_logs,
-        })
+        return templates.TemplateResponse(
+            request,
+            "logs.html",
+            {
+                "page": "logs",
+                "initial_logs": initial_logs,
+            },
+        )
 
     @app.get("/settings", response_class=HTMLResponse)
     async def settings_page(request: Request):
@@ -243,15 +256,19 @@ def create_app(config: AppConfig, service: EngineService, updater: Updater) -> F
             update_status = updater.check()
         startup_enabled = _check_startup_task()
         default_db = str((Path.home() / ".mediariver" / "state.db").resolve())
-        return templates.TemplateResponse(request, "settings.html", {
-            "page": "settings",
-            "config": config,
-            "env_json": json.dumps(config.env, indent=2),
-            "current_version": current_version,
-            "update_status": update_status,
-            "startup_enabled": startup_enabled,
-            "default_db_url": f"sqlite:///{default_db}",
-        })
+        return templates.TemplateResponse(
+            request,
+            "settings.html",
+            {
+                "page": "settings",
+                "config": config,
+                "env_json": json.dumps(config.env, indent=2),
+                "current_version": current_version,
+                "update_status": update_status,
+                "startup_enabled": startup_enabled,
+                "default_db_url": f"sqlite:///{default_db}",
+            },
+        )
 
     # ── API routes ─────────────────────────────────────────────────────
 
@@ -344,12 +361,12 @@ def create_app(config: AppConfig, service: EngineService, updater: Updater) -> F
             session.commit()
             return (
                 f'<tr id="file-row-{pf.id}">'
-                f'<td>{pf.workflow_name}</td>'
+                f"<td>{pf.workflow_name}</td>"
                 f'<td class="truncate" title="{pf.file_path}">{pf.file_path}</td>'
                 f'<td><span class="badge badge-pending">pending</span></td>'
-                f'<td>-</td><td>-</td>'
+                f"<td>-</td><td>-</td>"
                 f'<td class="text-sm">{pf.updated_at}</td>'
-                f'<td></td></tr>'
+                f"<td></td></tr>"
             )
 
     @app.post("/api/files/reprocess-all")
@@ -372,6 +389,7 @@ def create_app(config: AppConfig, service: EngineService, updater: Updater) -> F
                 pf.attempts = 0
             session.commit()
         from starlette.responses import RedirectResponse
+
         params = f"?workflow={workflow}&status=" if workflow else ""
         return RedirectResponse(f"/files{params}", status_code=303)
 

@@ -82,18 +82,14 @@ def run(
                 session = get_session(engine)
 
                 def is_known(conn: str, path: str) -> bool:
-                    result = session.query(ProcessedFile).filter_by(
-                        workflow_name=spec.name, file_path=path
-                    ).first()
+                    result = session.query(ProcessedFile).filter_by(workflow_name=spec.name, file_path=path).first()
                     if not result:
                         return False
                     # Skip done and running files; pending and failed should be picked up
                     return result.status in ("done", "running")
 
                 def on_new_file(path: str, file_hash: str, file_size: int) -> None:
-                    existing = session.query(ProcessedFile).filter_by(
-                        workflow_name=spec.name, file_path=path
-                    ).first()
+                    existing = session.query(ProcessedFile).filter_by(workflow_name=spec.name, file_path=path).first()
                     if existing and existing.status == "done":
                         return
 

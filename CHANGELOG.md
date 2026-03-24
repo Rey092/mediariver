@@ -1,6 +1,23 @@
 # CHANGELOG
 
 
+## v0.8.3 (2026-03-24)
+
+### Bug Fixes
+
+- Use file_path instead of file_hash for idempotency tracking
+  ([`dc467b1`](https://github.com/Rey092/mediariver/commit/dc467b1d7536f477755bdb610bcc7f0e939f45d6))
+
+Previously, files with identical content (same hash) but different names were silently skipped. Now
+  each file path is tracked independently.
+
+- Changed unique constraint from (workflow_name, file_hash) to (workflow_name, file_path) - Changed
+  on_new_file lookup from file_hash to file_path - Note: existing state.db needs to be deleted after
+  this change
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
+
 ## v0.8.2 (2026-03-24)
 
 ### Bug Fixes

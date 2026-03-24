@@ -1,11 +1,9 @@
 """Tests for git-based updater."""
 
-from unittest.mock import patch
 import subprocess
+from unittest.mock import patch
 
-import pytest
-
-from desktop.updater import Updater, UpdateStatus
+from desktop.updater import Updater
 
 
 class TestUpdater:

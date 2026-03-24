@@ -40,11 +40,16 @@ class VideoConcatAction(BaseAction):
                 fh.writelines(lines)
 
             args = [
-                "-f", "concat",
-                "-safe", "0",
-                "-i", concat_file,
-                "-c", "copy",
-                "-y", output_path,
+                "-f",
+                "concat",
+                "-safe",
+                "0",
+                "-i",
+                concat_file,
+                "-c",
+                "copy",
+                "-y",
+                output_path,
             ]
         else:
             # filter mode
@@ -56,15 +61,16 @@ class VideoConcatAction(BaseAction):
             filter_parts = "".join(f"[{i}:v][{i}:a]" for i in range(n))
             filter_complex = f"{filter_parts}concat=n={n}:v=1:a=1[v][a]"
 
-            args = (
-                input_args
-                + [
-                    "-filter_complex", filter_complex,
-                    "-map", "[v]",
-                    "-map", "[a]",
-                    "-y", output_path,
-                ]
-            )
+            args = input_args + [
+                "-filter_complex",
+                filter_complex,
+                "-map",
+                "[v]",
+                "-map",
+                "[a]",
+                "-y",
+                output_path,
+            ]
 
         result = executor.run(
             binary="ffmpeg",

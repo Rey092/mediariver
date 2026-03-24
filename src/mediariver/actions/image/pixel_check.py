@@ -42,13 +42,9 @@ class ImagePixelCheckAction(BaseAction):
         pixel_count = int(result.stdout.strip())
 
         if params.min_pixels is not None and pixel_count < params.min_pixels:
-            raise RuntimeError(
-                f"pixel count {pixel_count} is below minimum {params.min_pixels}"
-            )
+            raise RuntimeError(f"pixel count {pixel_count} is below minimum {params.min_pixels}")
 
         if params.max_pixels is not None and pixel_count > params.max_pixels:
-            raise RuntimeError(
-                f"pixel count {pixel_count} is above maximum {params.max_pixels}"
-            )
+            raise RuntimeError(f"pixel count {pixel_count} is above maximum {params.max_pixels}")
 
         return ActionResult(status="done", extras={"pixel_count": pixel_count})

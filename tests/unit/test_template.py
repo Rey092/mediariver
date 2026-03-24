@@ -1,6 +1,5 @@
 """Tests for Jinja2 template resolution."""
 
-
 from mediariver.engine.template import evaluate_condition, resolve_dict, resolve_string
 
 

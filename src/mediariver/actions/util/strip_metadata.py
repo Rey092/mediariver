@@ -40,10 +40,14 @@ class StripMetadataAction(BaseAction):
             result = executor.run(
                 binary="ffmpeg",
                 args=[
-                    "-i", input_path,
-                    "-map_metadata", "-1",
-                    "-c", "copy",
-                    "-y", output_path,
+                    "-i",
+                    input_path,
+                    "-map_metadata",
+                    "-1",
+                    "-c",
+                    "copy",
+                    "-y",
+                    output_path,
                 ],
                 docker_image="mediariver/ffmpeg:latest",
             )

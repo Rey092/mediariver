@@ -51,9 +51,12 @@ class ImageResizeAction(BaseAction):
         elif params.fit == "cover":
             cov_geo = f"{w}x{h}" if h is not None else f"{w}x{w}"
             args += [
-                "-resize", f"{cov_geo}^",
-                "-gravity", "center",
-                "-extent", cov_geo,
+                "-resize",
+                f"{cov_geo}^",
+                "-gravity",
+                "center",
+                "-extent",
+                cov_geo,
             ]
         elif params.fit == "fill":
             fill_geo = f"{w}x{h}!" if h is not None else f"{w}x{w}!"

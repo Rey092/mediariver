@@ -21,8 +21,12 @@ def base_context(tmp_path):
     work_dir.mkdir()
     return {
         "file": {
-            "name": "audio.mp3", "stem": "audio", "ext": ".mp3",
-            "path": "/tmp/audio.mp3", "hash": "h", "size": 5000,
+            "name": "audio.mp3",
+            "stem": "audio",
+            "ext": ".mp3",
+            "path": "/tmp/audio.mp3",
+            "hash": "h",
+            "size": 5000,
         },
         "env": {},
         "steps": {},
@@ -34,15 +38,20 @@ class TestAudioInfoAction:
     def test_parses_ffprobe_json(self, mock_executor, base_context):
         from mediariver.actions.audio.info import AudioInfoAction
 
-        probe_output = json.dumps({
-            "streams": [
-                {
-                    "codec_type": "audio", "codec_name": "mp3",
-                    "bit_rate": "320000", "sample_rate": "44100", "channels": 2,
-                },
-            ],
-            "format": {"duration": "180.5"},
-        })
+        probe_output = json.dumps(
+            {
+                "streams": [
+                    {
+                        "codec_type": "audio",
+                        "codec_name": "mp3",
+                        "bit_rate": "320000",
+                        "sample_rate": "44100",
+                        "channels": 2,
+                    },
+                ],
+                "format": {"duration": "180.5"},
+            }
+        )
         mock_executor.run.return_value = CommandResult(returncode=0, stdout=probe_output, stderr="")
 
         action = AudioInfoAction()
@@ -140,8 +149,7 @@ class TestAudioDurationCheckAction:
 
         action = AudioDurationCheckAction()
         params = action.params_model(
-            original="/tmp/orig.mp3", processed="/tmp/proc.m4a",
-            tolerance_ms=500, on_mismatch="fail"
+            original="/tmp/orig.mp3", processed="/tmp/proc.m4a", tolerance_ms=500, on_mismatch="fail"
         )
         with pytest.raises(RuntimeError, match="Duration mismatch"):
             action.run(base_context, params, mock_executor)
@@ -156,8 +164,7 @@ class TestAudioDurationCheckAction:
 
         action = AudioDurationCheckAction()
         params = action.params_model(
-            original="/tmp/orig.mp3", processed="/tmp/proc.m4a",
-            tolerance_ms=500, on_mismatch="warn"
+            original="/tmp/orig.mp3", processed="/tmp/proc.m4a", tolerance_ms=500, on_mismatch="warn"
         )
         result = action.run(base_context, params, mock_executor)
 

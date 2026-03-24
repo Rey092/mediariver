@@ -44,10 +44,14 @@ class VideoExtractAudioAction(BaseAction):
         output_path = os.path.join(work_dir, f"{stem}_audio.{ext}")
 
         args = [
-            "-i", input_path,
-            "-map", f"0:a:{params.stream}",
-            "-c:a", params.codec,
-            "-y", output_path,
+            "-i",
+            input_path,
+            "-map",
+            f"0:a:{params.stream}",
+            "-c:a",
+            params.codec,
+            "-y",
+            output_path,
         ]
 
         result = executor.run(

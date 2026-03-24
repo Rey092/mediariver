@@ -54,10 +54,14 @@ class WatermarkAction(BaseAction):
                 raise ValueError("params.image is required for type='image'")
             filter_complex = f"{overlay_expr}:format=auto,format=yuv420p"
             args = [
-                "-i", input_path,
-                "-i", params.image,
-                "-filter_complex", filter_complex,
-                "-y", output_path,
+                "-i",
+                input_path,
+                "-i",
+                params.image,
+                "-filter_complex",
+                filter_complex,
+                "-y",
+                output_path,
             ]
         else:
             if not params.text:
@@ -72,9 +76,12 @@ class WatermarkAction(BaseAction):
                 f":x={x_expr}:y={y_expr}"
             )
             args = [
-                "-i", input_path,
-                "-vf", drawtext,
-                "-y", output_path,
+                "-i",
+                input_path,
+                "-vf",
+                drawtext,
+                "-y",
+                output_path,
             ]
 
         result = executor.run(

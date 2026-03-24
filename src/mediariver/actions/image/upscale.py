@@ -55,10 +55,14 @@ class ImageUpscaleAction(BaseAction):
         model = config["model"]
 
         args = [
-            "-i", input_path,
-            "-o", output_path,
-            "-s", str(params.scale),
-            "-n", model,
+            "-i",
+            input_path,
+            "-o",
+            output_path,
+            "-s",
+            str(params.scale),
+            "-n",
+            model,
         ]
 
         result = executor.run(

@@ -56,7 +56,6 @@ def run(
 
     # Import actions to trigger registration
     import mediariver.actions  # noqa: F401
-
     from mediariver.actions.registry import ActionRegistry
 
     # Startup info

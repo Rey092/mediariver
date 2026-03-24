@@ -21,6 +21,7 @@ class HashVerifyParams(BaseModel):
 def _compute_hash(path: str, algo: str) -> str:
     if algo == "blake3":
         import blake3  # type: ignore[import-untyped]
+
         hasher = blake3.blake3()
         with open(path, "rb") as f:
             while chunk := f.read(65536):
@@ -53,10 +54,7 @@ class HashVerifyAction(BaseAction):
             if params.expected is None:
                 raise ValueError("params.expected is required for mode='verify'")
             if digest != params.expected:
-                raise RuntimeError(
-                    f"Hash mismatch for {input_path}: "
-                    f"computed={digest}, expected={params.expected}"
-                )
+                raise RuntimeError(f"Hash mismatch for {input_path}: computed={digest}, expected={params.expected}")
 
         return ActionResult(
             status="done",

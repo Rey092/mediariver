@@ -1,6 +1,5 @@
 """Tests for engine service subprocess management."""
 
-import pytest
 
 from desktop.config import AppConfig
 from desktop.service import EngineService

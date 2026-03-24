@@ -48,11 +48,16 @@ class VideoPreviewAction(BaseAction):
         output_path = os.path.join(work_dir, f"{stem}_preview.{params.format}")
 
         args = [
-            "-i", input_path,
-            "-t", str(duration_secs),
-            "-vf", f"fps={params.fps},scale={params.width}:-1",
-            "-loop", "0",
-            "-y", output_path,
+            "-i",
+            input_path,
+            "-t",
+            str(duration_secs),
+            "-vf",
+            f"fps={params.fps},scale={params.width}:-1",
+            "-loop",
+            "0",
+            "-y",
+            output_path,
         ]
 
         result = executor.run(

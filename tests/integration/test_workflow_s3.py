@@ -9,19 +9,17 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
-from pathlib import Path
 
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
 from mediariver.actions.executor import CommandExecutor
-from mediariver.config.loader import load_workflow
 from mediariver.config.schema import ConnectionConfig, StepConfig, WatchConfig, WorkflowSpec
 from mediariver.connections.registry import build_connection
 from mediariver.engine.runner import PipelineRunner
 from mediariver.state.database import create_tables
-from mediariver.state.models import Base, ProcessedFile
+from mediariver.state.models import ProcessedFile
 from mediariver.watcher.poller import compute_file_hash
 
 MINIO_ENDPOINT = os.environ.get("MINIO_ENDPOINT", "http://localhost:9000")

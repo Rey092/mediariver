@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import subprocess
 from dataclasses import asdict
@@ -176,10 +177,8 @@ def create_app(config: AppConfig, service: EngineService, updater: Updater) -> F
     async def settings_page(request: Request):
         current_version = updater.get_current_version()
         update_status = None
-        try:
+        with contextlib.suppress(Exception):
             update_status = updater.check()
-        except Exception:
-            pass
         return templates.TemplateResponse(request, "settings.html", {
             "page": "settings",
             "config": config,
@@ -227,10 +226,8 @@ def create_app(config: AppConfig, service: EngineService, updater: Updater) -> F
         config.log_level = log_level
         config.database_url = database_url or None
         config.port = port
-        try:
+        with contextlib.suppress(json.JSONDecodeError, TypeError):
             config.env = json.loads(env)
-        except (json.JSONDecodeError, TypeError):
-            pass
         save_config(config)
         return {"ok": True}
 

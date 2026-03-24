@@ -1,8 +1,6 @@
 """Tests for desktop app configuration."""
 
-import json
 
-import pytest
 
 from desktop.config import AppConfig, load_config, save_config
 

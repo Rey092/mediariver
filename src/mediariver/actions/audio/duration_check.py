@@ -70,8 +70,10 @@ def _probe_duration(executor: CommandExecutor, path: str) -> float:
     result = executor.run(
         binary="ffprobe",
         args=[
-            "-v", "quiet",
-            "-print_format", "json",
+            "-v",
+            "quiet",
+            "-print_format",
+            "json",
             "-show_format",
             path,
         ],

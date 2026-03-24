@@ -41,8 +41,10 @@ class OcrAction(BaseAction):
             args=[
                 input_path,
                 output_base,
-                "-l", params.lang,
-                "--psm", str(params.psm),
+                "-l",
+                params.lang,
+                "--psm",
+                str(params.psm),
             ],
             docker_image="mediariver/tesseract:latest",
         )

@@ -29,10 +29,14 @@ def _run_dandere2x(
     input_name = os.path.basename(input_path)
     output_name = os.path.basename(output_path)
     args = [
-        "-p", "singleprocess",
-        "-ws", "./workspace/",
-        "-i", f"/work/{input_name}",
-        "-o", f"/work/{output_name}",
+        "-p",
+        "singleprocess",
+        "-ws",
+        "./workspace/",
+        "-i",
+        f"/work/{input_name}",
+        "-o",
+        f"/work/{output_name}",
     ]
     return executor.run(
         binary="docker",
@@ -50,10 +54,14 @@ def _run_realesrgan(
     scale: int,
 ) -> Any:
     args = [
-        "-i", input_path,
-        "-o", output_path,
-        "-s", str(scale),
-        "-n", "realesrgan-x4plus-anime",
+        "-i",
+        input_path,
+        "-o",
+        output_path,
+        "-s",
+        str(scale),
+        "-n",
+        "realesrgan-x4plus-anime",
     ]
     return executor.run(
         binary="realesrgan-ncnn-vulkan",
@@ -70,9 +78,12 @@ def _run_lanczos(
     scale: int,
 ) -> Any:
     args = [
-        "-i", input_path,
-        "-vf", f"scale=iw*{scale}:ih*{scale}:flags=lanczos",
-        "-y", output_path,
+        "-i",
+        input_path,
+        "-vf",
+        f"scale=iw*{scale}:ih*{scale}:flags=lanczos",
+        "-y",
+        output_path,
     ]
     return executor.run(
         binary="ffmpeg",

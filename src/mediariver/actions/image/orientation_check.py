@@ -50,8 +50,6 @@ class ImageOrientationCheckAction(BaseAction):
             actual = "square"
 
         if actual != params.expect:
-            raise RuntimeError(
-                f"orientation mismatch: expected {params.expect!r}, got {actual!r}"
-            )
+            raise RuntimeError(f"orientation mismatch: expected {params.expect!r}, got {actual!r}")
 
         return ActionResult(status="done", extras={"orientation": actual})

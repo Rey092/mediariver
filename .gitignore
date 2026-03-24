@@ -8,3 +8,6 @@ build/
 .coverage
 coverage.xml
 pytest_output.txt
+.idea
+workflows
+docs

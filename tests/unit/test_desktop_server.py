@@ -3,10 +3,12 @@
 from unittest.mock import MagicMock
 
 import pytest
-from fastapi.testclient import TestClient
 
-from desktop.config import AppConfig
-from desktop.updater import UpdateStatus
+fastapi = pytest.importorskip("fastapi", reason="desktop extras not installed")
+from fastapi.testclient import TestClient  # noqa: E402
+
+from desktop.config import AppConfig  # noqa: E402
+from desktop.updater import UpdateStatus  # noqa: E402
 
 
 @pytest.fixture

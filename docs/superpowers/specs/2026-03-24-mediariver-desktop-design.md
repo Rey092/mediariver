@@ -11,7 +11,7 @@ Windows desktop wrapper for MediaRiver. Tray icon + web UI for managing the medi
 | Location | Same repo (`desktop/`) | Single git pull updates engine + desktop |
 | Tray app | pystray | Lightweight, Python-native |
 | UI | FastAPI + Jinja2 + HTMX | No JS build step, SSE for live logs, Python-only |
-| Installer | Bootstrap .exe wrapping PowerShell | Minimal maintenance, easy to update |
+| Installer | PowerShell bootstrap (no .exe) | Avoids SmartScreen/antivirus issues. Standard pattern (like rustup, scoop) |
 | Auto-update | On start + manual button in UI | Predictable, no background polling |
 | Startup | Task Scheduler with 30s delay | Reliable, supports delay, no registry hacks |
 
@@ -38,14 +38,14 @@ desktop/
 
 installer/
 ├── bootstrap.ps1        # PowerShell installer script
-└── build_installer.py   # PyInstaller to create .exe from bootstrap runner
+└── uninstall.ps1        # Removes scheduled task, shortcuts, optionally app dir
 ```
 
 ## Components
 
 ### Tray App (`tray.py`)
 
-Runs as the main process. Uses pystray to show a tray icon.
+Runs as the main process via `pythonw.exe` (no console window). Uses pystray for the tray icon.
 
 **Menu items:**
 - Open UI (also triggered by left-click) — opens `http://localhost:9876` in default browser
@@ -54,34 +54,43 @@ Runs as the main process. Uses pystray to show a tray icon.
 - Quit — stops engine, stops server, exits
 
 **On start:**
-1. Run updater check (git fetch, compare hashes, pull if behind)
-2. Start FastAPI server (uvicorn) in a thread
-3. Start mediariver engine subprocess
-4. Show tray icon
+1. Check if port 9876 is available — if not, show tray notification with error and exit
+2. Run updater check (git fetch, compare hashes, pull if behind)
+3. Start FastAPI server (uvicorn) in a daemon thread
+4. Start mediariver engine subprocess
+5. Show tray icon
+6. Watchdog: check server thread alive every 30s, restart if crashed
+
+**Logging:** All desktop components log to `~/.mediariver/desktop.log` (rotating, 5MB max, 3 backups) since `pythonw.exe` has no console.
 
 ### Web Server (`server.py`)
 
 FastAPI app on `localhost:9876`. Jinja2 templates + HTMX for interactivity.
+
+Imports `ProcessedFile` and `WorkflowRun` from `mediariver.state.models` and uses `create_db_engine`/`get_session` from `mediariver.state.database` for read-only queries.
+
+**Database access:** Uses SQLAlchemy with WAL mode (`PRAGMA journal_mode=WAL`) and `connect_args={"timeout": 30}` to avoid conflicts with the engine subprocess writing to the same SQLite file.
 
 **Pages:**
 
 | Route | Page | Content |
 |-------|------|---------|
 | `/` | Dashboard | Engine status (running/stopped), GPU detected (encoders list), uptime, files processed count by status |
-| `/files` | Files | Table from `processed_files` DB. Columns: workflow, file, status, current step, error, timestamps. Filter by workflow/status. HTMX polling refresh. |
-| `/workflows` | Workflows | List loaded workflow YAML files. Validation status (OK/error). Click to view YAML. |
-| `/logs` | Logs | Live server log stream via SSE (Server-Sent Events). Auto-scroll. Filter by level. |
-| `/settings` | Settings | Workflows dir path, work dir path, database URL, log level, env vars editor. Save writes to config.json. "Update" button (shows current vs remote version). "Restart Server" button. |
+| `/files` | Files | Table from `processed_files` DB. Columns: workflow, file, status, current step, error, timestamps. Filter by workflow/status. Pagination: `?offset=0&limit=50`, HTMX `hx-get` for page navigation. |
+| `/workflows` | Workflows | List loaded workflow YAML files. Validation status (OK/error). Click to view YAML in a `<pre>` block. |
+| `/logs` | Logs | Live server log stream via SSE + HTMX. Auto-scroll. Filter by level. Engine logs are structlog JSON — parse and format for display. |
+| `/settings` | Settings | Workflows dir path, database URL, log level, env vars editor. Save writes to config.json. "Check for Updates" button (shows current vs remote version, "Apply Update" if behind). "Restart Server" button. |
 
 **API endpoints (used by HTMX):**
 
 | Method | Route | Action |
 |--------|-------|--------|
 | GET | `/api/status` | Engine status JSON (running, uptime, gpu info) |
-| GET | `/api/files` | Processed files list (paginated, filterable) |
-| GET | `/api/logs/stream` | SSE endpoint for live logs |
+| GET | `/api/files` | Processed files list (paginated: `?offset=0&limit=50&workflow=&status=`) |
+| GET | `/api/workflows/{name}` | Raw YAML content of a single workflow |
+| GET | `/api/logs/stream` | SSE endpoint for live logs (manual `StreamingResponse` with `text/event-stream`) |
 | POST | `/api/server/restart` | Restart engine subprocess |
-| POST | `/api/update` | Trigger git pull + pip install + restart |
+| POST | `/api/update` | Trigger git pull + restart |
 | GET | `/api/update/check` | Check for updates (commits behind) |
 | POST | `/api/settings` | Save config.json |
 
@@ -92,33 +101,45 @@ Manages the `mediariver run` subprocess.
 ```python
 class EngineService:
     def start() -> None       # spawn subprocess with config
-    def stop() -> None        # terminate gracefully (SIGTERM), force after 5s
+    def stop() -> None        # graceful stop via CTRL_BREAK_EVENT, force-kill after 5s
     def restart() -> None     # stop + start
     def is_running() -> bool  # check subprocess alive
-    def get_logs() -> list    # return captured log lines
-    def stream_logs() -> AsyncGenerator  # yield log lines as they arrive
+    def get_logs() -> list    # return captured log lines from ring buffer
+    def stream_logs() -> AsyncGenerator  # yield log lines via asyncio.Queue broadcast
 ```
 
-The subprocess runs: `python -m mediariver run --workflows-dir {config.workflows_dir} --database-url {config.database_url} --log-level {config.log_level}`
+**Subprocess command:** `python -m mediariver run --workflows-dir {config.workflows_dir} --database-url {config.database_url} --log-level {config.log_level}`
 
-Env vars from `config.env` are injected into the subprocess environment.
+**Env vars:** Injected from `config.json`'s `env` dict into the subprocess environment.
 
-Stdout/stderr are captured via pipes and stored in a ring buffer (last 10,000 lines) for the logs page.
+**Graceful shutdown (Windows):** The subprocess is created with `CREATE_NEW_PROCESS_GROUP`. Stop sends `CTRL_BREAK_EVENT` via `os.kill(pid, signal.CTRL_BREAK_EVENT)`, which triggers `KeyboardInterrupt` in the engine's `run` command. If the process is still alive after 5s, `process.kill()` is called.
+
+**Log capture:** Stdout/stderr are captured via pipes in a reader thread. Lines are parsed as structlog JSON and pushed into an `asyncio.Queue` for SSE broadcast. A ring buffer (last 10,000 lines) stores history for the logs page initial load.
 
 ### Updater (`updater.py`)
 
 ```python
 class Updater:
     def check() -> UpdateStatus       # git fetch, compare HEAD vs origin/main
-    def apply() -> None               # git pull, pip install -e ., restart
+    def apply() -> None               # stop engine, git pull, pip install if needed, restart
     def get_current_version() -> str  # git rev-parse --short HEAD
     def get_remote_version() -> str   # git rev-parse --short origin/main
 ```
 
 `UpdateStatus`: `{ up_to_date: bool, commits_behind: int, current: str, remote: str }`
 
-On tray app start: `check()` → if not up to date → `apply()` automatically.
-"Update" button in UI: `check()` → show status → user clicks "Apply" → `apply()`.
+**On tray app start:** `check()` → if not up to date → `apply()` automatically (before engine starts).
+
+**"Update" button in UI:** `check()` → show status → user clicks "Apply Update" → `apply()`.
+
+**Update sequence:**
+1. Stop engine subprocess
+2. Check for dirty working tree (`git status --porcelain`) — if dirty, refuse update with message
+3. `git pull origin main`
+4. Check if `pyproject.toml` changed — if so, run `pip install -e ".[desktop]"` (safe because engine is stopped)
+5. Restart tray app (launch new process, exit current)
+
+**Edge case:** If `git pull` fails (conflict, network error), log the error, show in UI, do not restart.
 
 ### Config (`config.py`)
 
@@ -127,7 +148,6 @@ Reads/writes `~/.mediariver/config.json`:
 ```json
 {
   "workflows_dir": "C:\\mediariver\\workflows",
-  "work_dir": "C:\\mediariver\\work",
   "database_url": null,
   "log_level": "info",
   "port": 9876,
@@ -144,38 +164,55 @@ Falls back to defaults if file missing. Creates file on first save.
 
 ## Installer
 
-### Bootstrap .exe
+### Installation (PowerShell one-liner)
 
-A tiny Python script compiled with PyInstaller that:
-1. Extracts `bootstrap.ps1` from embedded resources
-2. Runs `powershell -ExecutionPolicy Bypass -File bootstrap.ps1`
+No `.exe` needed. Users run this in PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/<user>/mediariver/main/installer/bootstrap.ps1 | iex
+```
+
+This avoids SmartScreen/antivirus issues entirely. Standard pattern used by rustup, scoop, deno, etc.
 
 ### bootstrap.ps1
 
 ```
-1. Check Python 3.12+ → if missing, install via winget (winget install Python.Python.3.12)
-2. Check Git → if missing, install via winget (winget install Git.Git)
-3. Clone repo: git clone https://github.com/<user>/mediariver C:\mediariver
-4. Create venv: python -m venv C:\mediariver\.venv
-5. Install deps: .venv\Scripts\pip install -e ".[desktop]"
-6. Create config.json with defaults
-7. Register Task Scheduler:
+1. Check Python 3.12+ → if missing:
+   - Try winget: winget install Python.Python.3.12
+   - If winget unavailable, print URL and exit with message
+2. Check Git → if missing:
+   - Try winget: winget install Git.Git
+   - If winget unavailable, print URL and exit with message
+3. Ask install path (default: C:\mediariver)
+4. Clone repo: git clone https://github.com/<user>/mediariver $installPath
+5. Create venv: python -m venv $installPath\.venv
+6. Install deps: & "$installPath\.venv\Scripts\pip" install -e ".[desktop]"
+7. Create config.json with defaults at ~/.mediariver/config.json
+8. Register Task Scheduler:
    - Name: MediaRiver
    - Trigger: At logon, delay 30 seconds
-   - Action: C:\mediariver\.venv\Scripts\pythonw.exe C:\mediariver\desktop\tray.py
-   - Run whether user is logged on or not: No (run only when logged on)
-8. Create Start Menu shortcut → same command
-9. Launch tray app
+   - Action: $installPath\.venv\Scripts\pythonw.exe $installPath\desktop\tray.py
+   - Run only when user is logged on
+9. Create Start Menu shortcut (MediaRiver → same command)
+10. Launch tray app
 ```
 
-### Uninstall
+### uninstall.ps1
 
-Add `uninstall.ps1` that: removes Task Scheduler entry, removes Start Menu shortcut, optionally removes `C:\mediariver` and `~/.mediariver`.
+```
+1. Unregister-ScheduledTask -TaskName "MediaRiver" -Confirm:$false
+2. Remove Start Menu shortcut
+3. Prompt: "Remove C:\mediariver? (y/n)" → if yes, remove
+4. Prompt: "Remove ~/.mediariver config and data? (y/n)" → if yes, remove
+```
+
+Located at `installer/uninstall.ps1`, also runnable from Settings page.
 
 ## Dependencies
 
+Add to `pyproject.toml` under `[project.optional-dependencies]`:
+
 ```toml
-[project.optional-dependencies]
 desktop = [
     "pystray>=0.19",
     "Pillow>=10.0",
@@ -185,7 +222,7 @@ desktop = [
 ]
 ```
 
-Note: `jinja2` is already a core dependency. `htmx.min.js` is vendored in `desktop/static/`.
+Note: `jinja2` is already a core dependency. `htmx.min.js` is vendored in `desktop/static/`. SSE uses FastAPI's built-in `StreamingResponse` with `text/event-stream` content type (no extra package).
 
 ## UI Style
 
@@ -193,7 +230,7 @@ Dark theme. Minimal CSS (no framework). Monospace font for logs and file paths. 
 
 ## GitHub Release
 
-- Create GitHub repo (or use existing if already pushed)
-- README.md with: project description, features, quickstart, CLI usage, Docker usage, desktop app install
-- Release v0.4.0 tag with: source, compiled `mediariver-setup.exe` as release asset
-- GitHub Actions: add a `build-installer.yml` workflow that builds the .exe on push to tags
+- Push to GitHub repo
+- README.md with: project description, features, quickstart (CLI, Docker, Desktop), action catalog
+- Tag `v0.5.0` for the desktop release
+- GitHub Actions: no .exe build needed — installer is a PowerShell script

@@ -109,14 +109,18 @@ class VideoTranscodeAction(BaseAction):
             return False
         if params.hw == "gpu" or is_hw_preset:
             return True
-        # auto: check if nvenc is available
+        # auto: try a real nvenc encode to verify GPU is actually available
         if params.hw == "auto":
             probe = executor.run(
                 binary="ffmpeg",
-                args=["-hide_banner", "-encoders"],
+                args=[
+                    "-hide_banner", "-loglevel", "error",
+                    "-f", "lavfi", "-i", "nullsrc=s=16x16:d=0.01",
+                    "-c:v", "h264_nvenc", "-f", "null", "-",
+                ],
                 docker_image="mediariver/ffmpeg:latest",
             )
-            return "h264_nvenc" in probe.stdout
+            return probe.returncode == 0
         return False
 
     @staticmethod

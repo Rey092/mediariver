@@ -1,6 +1,20 @@
 # CHANGELOG
 
 
+## v0.9.2 (2026-03-24)
+
+### Bug Fixes
+
+- **desktop**: Strip blank lines from logs, cap at 500, auto-scroll
+  ([`b559d44`](https://github.com/Rey092/mediariver/commit/b559d4444aa5efcd16921384c10f2c048131f515))
+
+- service.py: strip() instead of rstrip("\n") to remove \r\n on Windows - logs.html: cap DOM at 500
+  lines, show line count, auto-scroll on load - Filter buttons match [info/[warning/[error brackets
+  for accuracy
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
+
 ## v0.9.1 (2026-03-24)
 
 ### Bug Fixes

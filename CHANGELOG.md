@@ -1,6 +1,20 @@
 # CHANGELOG
 
 
+## v0.7.0 (2026-03-24)
+
+### Features
+
+- **desktop**: Add startup toggle in Settings UI
+  ([`a16a210`](https://github.com/Rey092/mediariver/commit/a16a2106a185cc28127d1db248d47473709e1526))
+
+- Enable/Disable Windows startup from the web UI - Uses HTMX for instant toggle without page reload
+  - Calls register-startup.ps1 or inline PowerShell fallback - Shows current state (Enabled/Disabled
+  badge)
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
+
 ## v0.6.0 (2026-03-24)
 
 ### Features

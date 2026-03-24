@@ -20,7 +20,8 @@
         </div>
         <div class="form-group">
             <label for="database_url">Database URL</label>
-            <input type="text" id="database_url" name="database_url" value="{{ config.database_url or '' }}">
+            <input type="text" id="database_url" name="database_url" value="{{ config.database_url or '' }}" placeholder="{{ default_db_url }}">
+            <p class="text-sm" style="color: #888; margin-top: 4px;">Leave empty to use default: {{ default_db_url }}</p>
         </div>
         <div class="form-group">
             <label for="port">Port</label>

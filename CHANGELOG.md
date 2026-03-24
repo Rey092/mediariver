@@ -1,6 +1,19 @@
 # CHANGELOG
 
 
+## v0.9.3 (2026-03-24)
+
+### Bug Fixes
+
+- Pending/failed files are now picked up by the watcher for reprocessing
+  ([`8bebdb1`](https://github.com/Rey092/mediariver/commit/8bebdb188b3efad1b65f94e59e22a7ff2ffc07fe))
+
+Previously is_known() skipped all files in the DB regardless of status. Now only done/running files
+  are skipped — pending and failed get reprocessed.
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
+
 ## v0.9.2 (2026-03-24)
 
 ### Bug Fixes

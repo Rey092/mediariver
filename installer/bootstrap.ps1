@@ -6,7 +6,7 @@
     Installs MediaRiver Desktop, sets up a Python virtual environment,
     registers a startup task, and creates a Start Menu shortcut.
 .EXAMPLE
-    irm https://raw.githubusercontent.com/user/mediariver/main/installer/bootstrap.ps1 | iex
+    irm https://raw.githubusercontent.com/Rey092/mediariver/main/installer/bootstrap.ps1 | iex
 #>
 
 $ErrorActionPreference = "Stop"
@@ -119,7 +119,7 @@ try {
         Write-Host "    Directory already exists — running git pull..." -ForegroundColor Yellow
         & git -C $installPath pull
     } else {
-        & git clone https://github.com/user/mediariver $installPath
+        & git clone https://github.com/Rey092/mediariver.git $installPath
     }
     Write-Host "    Source ready at $installPath" -ForegroundColor Green
 } catch {
@@ -146,9 +146,14 @@ try {
 Write-Host "[6/8] Installing dependencies..." -ForegroundColor Yellow
 
 try {
+    Push-Location $installPath
+    & "$installPath\.venv\Scripts\python" -m pip install --upgrade pip --quiet
+    & "$installPath\.venv\Scripts\pip" install "setuptools<81" --quiet
     & "$installPath\.venv\Scripts\pip" install -e ".[desktop]"
+    Pop-Location
     Write-Host "    Dependencies installed." -ForegroundColor Green
 } catch {
+    Pop-Location
     Write-Host "ERROR: Failed to install dependencies: $_" -ForegroundColor Red
     exit 1
 }

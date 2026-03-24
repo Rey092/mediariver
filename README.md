@@ -31,7 +31,7 @@ docker run --gpus all -v ./workflows:/workflows -v ./media:/incoming mediariver:
 **Windows Desktop**
 
 ```powershell
-irm https://raw.githubusercontent.com/user/mediariver/main/installer/bootstrap.ps1 | iex
+irm https://raw.githubusercontent.com/Rey092/mediariver/main/installer/bootstrap.ps1 | iex
 ```
 
 ## Workflow Example
@@ -163,7 +163,7 @@ Connection credentials (S3 keys, FTP passwords, SFTP keys) are read from environ
 ## Development
 
 ```bash
-git clone https://github.com/user/mediariver
+git clone https://github.com/Rey092/mediariver
 cd mediariver
 pip install -e ".[dev]"
 pytest tests/unit/ -v

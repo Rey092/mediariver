@@ -1,6 +1,21 @@
 # CHANGELOG
 
 
+## v0.8.0 (2026-03-24)
+
+### Features
+
+- **desktop**: Separate Restart Engine and Restart App buttons
+  ([`b086d3e`](https://github.com/Rey092/mediariver/commit/b086d3e0062b258944c98e4039c59adeba9e442b))
+
+Tray menu: - Restart Engine — restarts media pipeline subprocess only - Restart App — full process
+  re-exec (picks up code changes)
+
+Settings UI: same two buttons with explanation text. API: /api/engine/restart and /api/app/restart
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
+
 ## v0.7.0 (2026-03-24)
 
 ### Features

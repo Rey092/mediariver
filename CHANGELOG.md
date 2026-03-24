@@ -1,6 +1,20 @@
 # CHANGELOG
 
 
+## v0.9.0 (2026-03-24)
+
+### Features
+
+- **desktop**: Add reprocess buttons for individual files and bulk reset
+  ([`337ab0e`](https://github.com/Rey092/mediariver/commit/337ab0e011215bfb63bb4e27ffcfbe6f745fa749))
+
+- Per-file "Reprocess" button on done/failed rows (HTMX inline update) - "Reprocess All" button for
+  bulk reset of filtered files - API: POST /api/files/{id}/reprocess and POST
+  /api/files/reprocess-all
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
+
 ## v0.8.4 (2026-03-24)
 
 ### Bug Fixes

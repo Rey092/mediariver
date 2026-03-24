@@ -1,6 +1,21 @@
 # CHANGELOG
 
 
+## v0.8.2 (2026-03-24)
+
+### Bug Fixes
+
+- **desktop**: Compute default DB URL inline instead of importing
+  ([`1517335`](https://github.com/Rey092/mediariver/commit/151733501561d02467dcd831526bd39722a0edff))
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
+- **desktop**: Show default database URL in settings when field is empty
+  ([`0818b9e`](https://github.com/Rey092/mediariver/commit/0818b9e3cbc1c33a79d9e0385227b532c7f57e64))
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
+
 ## v0.8.1 (2026-03-24)
 
 ### Chores

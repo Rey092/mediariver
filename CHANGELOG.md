@@ -1,7 +1,20 @@
 # CHANGELOG
 
 
+## v0.8.1 (2026-03-24)
+
+### Chores
+
+- Merge branch 'main' of https://github.com/Rey092/mediariver
+  ([`ad87878`](https://github.com/Rey092/mediariver/commit/ad8787851707bfe38836418e50e2ccfb34e95737))
+
+
 ## v0.8.0 (2026-03-24)
+
+### Bug Fixes
+
+- Update local shit
+  ([`cc0576c`](https://github.com/Rey092/mediariver/commit/cc0576c3420b10d22781d898be6ca885ef38c1b9))
 
 ### Features
 

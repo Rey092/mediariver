@@ -9,3 +9,5 @@ build/
 coverage.xml
 pytest_output.txt
 .idea
+./workflows
+./docs

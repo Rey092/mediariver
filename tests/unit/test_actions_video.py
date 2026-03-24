@@ -97,13 +97,37 @@ class TestVideoCropAction:
 
 
 class TestVideoTranscodeAction:
-    def test_basic_transcode(self, mock_executor, base_context):
+    def test_basic_transcode_cpu(self, mock_executor, base_context):
         action = VideoTranscodeAction()
-        params = action.params_model(preset="h264-web", crf=18)
+        params = action.params_model(preset="h264-web", crf=18, hw="cpu")
         result = action.run(base_context, params, mock_executor, resolved_input="/tmp/video.mp4")
 
         assert result.status == "done"
-        mock_executor.run.assert_called_once()
+        assert result.extras["codec"] == "libx264"
+        assert result.extras["gpu"] is False
+
+    def test_nvenc_preset(self, mock_executor, base_context):
+        action = VideoTranscodeAction()
+        params = action.params_model(preset="nvenc-h264", crf=20)
+        result = action.run(base_context, params, mock_executor, resolved_input="/tmp/video.mp4")
+
+        assert result.status == "done"
+        assert result.extras["codec"] == "h264_nvenc"
+        assert result.extras["gpu"] is True
+
+    def test_auto_hw_detection(self, mock_executor, base_context):
+        # Mock ffmpeg -encoders to return nvenc support
+        mock_executor.run.side_effect = [
+            CommandResult(returncode=0, stdout="h264_nvenc", stderr=""),  # encoder check
+            CommandResult(returncode=0, stdout="", stderr=""),  # actual transcode
+        ]
+        action = VideoTranscodeAction()
+        params = action.params_model(preset="h264-web", crf=18, hw="auto")
+        result = action.run(base_context, params, mock_executor, resolved_input="/tmp/video.mp4")
+
+        assert result.status == "done"
+        assert result.extras["codec"] == "h264_nvenc"
+        assert result.extras["gpu"] is True
 
 
 class TestVideoHlsAction:

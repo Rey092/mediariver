@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.9.1 (2026-03-24)
+
+### Bug Fixes
+
+- **desktop**: Pass total count to files table for Reprocess All button
+  ([`04a178b`](https://github.com/Rey092/mediariver/commit/04a178bca289aa936d03988a08366b5f0675994b))
+
+
 ## v0.9.0 (2026-03-24)
 
 ### Features

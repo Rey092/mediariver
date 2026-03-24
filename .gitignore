@@ -11,3 +11,4 @@ pytest_output.txt
 .idea
 /workflows/
 /docs/
+demo/output

@@ -1,0 +1,39 @@
+name: demo-video
+description: "Demo: probe video, transcode to h264-web, generate thumbnail, upload to S3"
+
+connections:
+  local:
+    type: local
+    root_path: "./demo/incoming/video"
+  output:
+    type: s3
+    bucket: "{{env.S3_BUCKET}}"
+    prefix: demo/video/
+    endpoint_url: "{{env.S3_ENDPOINT}}"
+    aws_access_key_id: "{{env.S3_ACCESS_KEY}}"
+    aws_secret_access_key: "{{env.S3_SECRET_KEY}}"
+
+watch:
+  connection: local
+  path: .
+  extensions: [.mp4, .mkv, .mov, .avi, .webm]
+  poll_interval: 10s
+
+flow:
+  - id: probe
+    action: video.info
+    input: "{{file.path}}"
+
+  - id: transcode
+    action: video.transcode
+    input: "{{file.path}}"
+    params:
+      preset: h264-web
+      crf: 23
+
+  - id: thumbnail
+    action: video.thumbnail
+    input: "{{steps.transcode.output}}"
+    params:
+      mode: single
+      width: 320

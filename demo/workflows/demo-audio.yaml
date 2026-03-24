@@ -1,0 +1,49 @@
+name: demo-audio
+description: "Demo: probe audio, normalize loudness, convert to AAC, copy to S3"
+
+connections:
+  local:
+    type: local
+    root_path: "./demo/incoming/audio"
+  output:
+    type: s3
+    bucket: "{{env.S3_BUCKET}}"
+    prefix: demo/audio/
+    endpoint_url: "{{env.S3_ENDPOINT}}"
+    aws_access_key_id: "{{env.S3_ACCESS_KEY}}"
+    aws_secret_access_key: "{{env.S3_SECRET_KEY}}"
+
+watch:
+  connection: local
+  path: .
+  extensions: [.mp3, .flac, .wav, .m4a, .ogg, .opus]
+  poll_interval: 10s
+
+flow:
+  - id: probe
+    action: audio.info
+    input: "{{file.path}}"
+
+  - id: normalize
+    action: audio.normalize
+    input: "{{file.path}}"
+    params:
+      target_i: -16
+      target_tp: -1.5
+      target_lra: 11
+      output_codec: aac
+      output_bitrate: 256k
+
+  - id: duration_check
+    action: audio.duration_check
+    params:
+      original: "{{file.path}}"
+      processed: "{{steps.normalize.output}}"
+      tolerance_ms: 500
+      on_mismatch: warn
+
+  - id: upload
+    action: copy
+    params:
+      from: "local://{{file.stem}}_normalized.m4a"
+      to: "output://{{file.stem}}/audio.m4a"

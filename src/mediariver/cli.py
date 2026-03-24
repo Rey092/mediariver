@@ -102,13 +102,19 @@ def run(
                     work_dir = work_base / file_hash
                     work_dir.mkdir(parents=True, exist_ok=True)
 
+                    # Resolve to absolute system path for local FS
+                    try:
+                        abs_path = watch_fs.getsyspath(path)
+                    except Exception:
+                        abs_path = path
+
                     runner = PipelineRunner(
                         spec,
                         executor,
                         connections=connections,
                         work_dir=str(work_dir),
                     )
-                    result = runner.run_file(path, file_hash)
+                    result = runner.run_file(abs_path, file_hash)
 
                     existing.status = result["status"]
                     existing.step_results = result.get("step_results", {})

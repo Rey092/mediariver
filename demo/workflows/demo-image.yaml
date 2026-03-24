@@ -1,0 +1,66 @@
+name: demo-image
+description: "Demo: probe image, auto-crop borders, resize thumbnail, copy to S3"
+
+connections:
+  local:
+    type: local
+    root_path: "./demo/incoming/manga"
+  output:
+    type: s3
+    bucket: "{{env.S3_BUCKET}}"
+    prefix: demo/images/
+    endpoint_url: "{{env.S3_ENDPOINT}}"
+    aws_access_key_id: "{{env.S3_ACCESS_KEY}}"
+    aws_secret_access_key: "{{env.S3_SECRET_KEY}}"
+
+watch:
+  connection: local
+  path: .
+  extensions: [.jpg, .jpeg, .png, .webp]
+  poll_interval: 10s
+
+flow:
+  - id: info
+    action: image.info
+    input: "{{file.path}}"
+
+  - id: pixel_guard
+    action: image.pixel_check
+    input: "{{file.path}}"
+    params:
+      min_pixels: 1000
+    on_failure: abort
+
+  - id: crop
+    action: image.crop
+    input: "{{file.path}}"
+    on_failure: skip
+    params:
+      mode: auto
+      auto_color: detect
+
+  - id: convert_webp
+    action: image.convert
+    input: "{{steps.crop.output or file.path}}"
+    params:
+      format: webp
+      quality: 85
+
+  - id: thumbnail
+    action: image.resize
+    input: "{{steps.convert_webp.output or file.path}}"
+    params:
+      width: 300
+      fit: contain
+
+  - id: upload_image
+    action: copy
+    params:
+      from: "local://{{file.stem}}_converted.webp"
+      to: "output://{{file.stem}}/page.webp"
+
+  - id: upload_thumb
+    action: copy
+    params:
+      from: "local://{{file.stem}}_resized.jpg"
+      to: "output://{{file.stem}}/thumb.jpg"

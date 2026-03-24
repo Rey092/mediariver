@@ -4,7 +4,7 @@ description: "Demo: probe video, transcode to h264-web, generate thumbnail, uplo
 connections:
   local:
     type: local
-    root_path: "./demo/incoming/video"
+    root_path: "{{env.MEDIA_VIDEO_DIR}}"
   output:
     type: s3
     bucket: "{{env.S3_BUCKET}}"

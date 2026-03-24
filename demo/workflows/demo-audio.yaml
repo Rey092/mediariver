@@ -4,7 +4,7 @@ description: "Demo: probe audio, normalize loudness, convert to AAC, upload to S
 connections:
   local:
     type: local
-    root_path: "./demo/incoming/audio"
+    root_path: "{{env.MEDIA_AUDIO_DIR}}"
   output:
     type: s3
     bucket: "{{env.S3_BUCKET}}"

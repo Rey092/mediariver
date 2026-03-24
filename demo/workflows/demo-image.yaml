@@ -4,7 +4,7 @@ description: "Demo: probe image, auto-crop borders, resize thumbnail, copy to S3
 connections:
   local:
     type: local
-    root_path: "./demo/incoming/manga"
+    root_path: "{{env.MEDIA_IMAGE_DIR}}"
   output:
     type: s3
     bucket: "{{env.S3_BUCKET}}"

@@ -1,6 +1,21 @@
 # CHANGELOG
 
 
+## v0.6.0 (2026-03-24)
+
+### Features
+
+- Add Taskfile with uv, Windows startup/shortcut, first-run notification
+  ([`180720b`](https://github.com/Rey092/mediariver/commit/180720bc13a3bb66b6fac119cfbf39dd41a86a07))
+
+- Taskfile.yml: all dev, desktop, docker, CLI commands using uv - task desktop:install — registers
+  startup task + Start Menu shortcut - task desktop:uninstall — removes both - task desktop:status —
+  checks registration state - installer/register-startup.ps1 + create-shortcut.ps1 — auto-detect
+  repo path - First-run notification: tells user to pin tray icon, opens web UI
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
+
 ## v0.5.3 (2026-03-24)
 
 

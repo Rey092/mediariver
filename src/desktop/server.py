@@ -76,7 +76,11 @@ def _set_startup_task(enable: bool) -> None:
 
     if not enable:
         subprocess.run(
-            ["powershell", "-Command", "Unregister-ScheduledTask -TaskName 'MediaRiver' -Confirm:$false -ErrorAction SilentlyContinue"],
+            [
+                "powershell", "-Command",
+                "Unregister-ScheduledTask -TaskName 'MediaRiver'"
+                " -Confirm:$false -ErrorAction SilentlyContinue",
+            ],
             capture_output=True, timeout=10,
         )
         return
@@ -94,10 +98,15 @@ def _set_startup_task(enable: bool) -> None:
         pythonw = str(repo_dir / ".venv" / "Scripts" / "pythonw.exe")
         tray_script = str(repo_dir / "src" / "desktop" / "tray.py")
         ps_cmd = (
-            f"$a = New-ScheduledTaskAction -Execute '{pythonw}' -Argument '{tray_script}' -WorkingDirectory '{repo_dir}';"
-            f"$t = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME; $t.Delay = 'PT30S';"
-            f"$s = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit 0;"
-            f"Register-ScheduledTask -TaskName 'MediaRiver' -Action $a -Trigger $t -Settings $s -Force | Out-Null"
+            f"$a = New-ScheduledTaskAction -Execute '{pythonw}'"
+            f" -Argument '{tray_script}' -WorkingDirectory '{repo_dir}';"
+            f"$t = New-ScheduledTaskTrigger -AtLogOn"
+            f" -User $env:USERNAME; $t.Delay = 'PT30S';"
+            f"$s = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries"
+            f" -DontStopIfGoingOnBatteries -StartWhenAvailable"
+            f" -ExecutionTimeLimit 0;"
+            f"Register-ScheduledTask -TaskName 'MediaRiver'"
+            f" -Action $a -Trigger $t -Settings $s -Force | Out-Null"
         )
         subprocess.run(["powershell", "-Command", ps_cmd], capture_output=True, timeout=15)
 
@@ -282,16 +291,22 @@ def create_app(config: AppConfig, service: EngineService, updater: Updater) -> F
     async def api_startup_enable():
         _set_startup_task(enable=True)
         return (
-            '<p class="text-sm"><span class="badge badge-done">Enabled</span> MediaRiver starts automatically 30s after logon</p>'
-            '<button class="btn" hx-post="/api/startup/disable" hx-target="#startup-status" hx-swap="innerHTML">Disable Startup</button>'
+            '<p class="text-sm"><span class="badge badge-done">Enabled</span>'
+            " MediaRiver starts automatically 30s after logon</p>"
+            '<button class="btn" hx-post="/api/startup/disable"'
+            ' hx-target="#startup-status" hx-swap="innerHTML">'
+            "Disable Startup</button>"
         )
 
     @app.post("/api/startup/disable", response_class=HTMLResponse)
     async def api_startup_disable():
         _set_startup_task(enable=False)
         return (
-            '<p class="text-sm"><span class="badge badge-failed">Disabled</span> MediaRiver does not start on Windows boot</p>'
-            '<button class="btn btn-accent" hx-post="/api/startup/enable" hx-target="#startup-status" hx-swap="innerHTML">Enable Startup</button>'
+            '<p class="text-sm"><span class="badge badge-failed">Disabled</span>'
+            " MediaRiver does not start on Windows boot</p>"
+            '<button class="btn btn-accent" hx-post="/api/startup/enable"'
+            ' hx-target="#startup-status" hx-swap="innerHTML">'
+            "Enable Startup</button>"
         )
 
     @app.post("/api/settings")

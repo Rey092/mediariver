@@ -88,9 +88,7 @@ def run(
                     if not result:
                         return False
                     # Skip done and running files; pending and failed should be picked up
-                    if result.status in ("done", "running"):
-                        return True
-                    return False
+                    return result.status in ("done", "running")
 
                 def on_new_file(path: str, file_hash: str, file_size: int) -> None:
                     existing = session.query(ProcessedFile).filter_by(

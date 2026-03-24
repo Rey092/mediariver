@@ -114,18 +114,29 @@ Write-Host "    Install path: $installPath" -ForegroundColor Green
 # ---------------------------------------------------------------------------
 Write-Host "[4/8] Fetching MediaRiver source..." -ForegroundColor Yellow
 
-try {
-    if (Test-Path $installPath) {
-        Write-Host "    Directory already exists — running git pull..." -ForegroundColor Yellow
-        & git -C $installPath pull
-    } else {
-        & git clone https://github.com/Rey092/mediariver.git $installPath
+if (Test-Path "$installPath\pyproject.toml") {
+    Write-Host "    Directory already exists - running git pull..." -ForegroundColor Yellow
+    & git -C $installPath pull origin main
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "ERROR: git pull failed" -ForegroundColor Red
+        exit 1
     }
-    Write-Host "    Source ready at $installPath" -ForegroundColor Green
-} catch {
-    Write-Host "ERROR: Failed to clone/pull repository: $_" -ForegroundColor Red
+} else {
+    if (Test-Path $installPath) {
+        Remove-Item $installPath -Recurse -Force
+    }
+    & git clone https://github.com/Rey092/mediariver.git $installPath
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "ERROR: git clone failed" -ForegroundColor Red
+        exit 1
+    }
+}
+
+if (-not (Test-Path "$installPath\pyproject.toml")) {
+    Write-Host "ERROR: Clone succeeded but pyproject.toml not found in $installPath" -ForegroundColor Red
     exit 1
 }
+Write-Host "    Source ready at $installPath" -ForegroundColor Green
 
 # ---------------------------------------------------------------------------
 # Step 5: Create virtual environment

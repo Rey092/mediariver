@@ -51,6 +51,55 @@ def _format_uptime(seconds: float) -> str:
     return f"{h}h {m}m"
 
 
+def _check_startup_task() -> bool:
+    """Check if the MediaRiver scheduled task exists on Windows."""
+    import sys
+    if sys.platform != "win32":
+        return False
+    try:
+        result = subprocess.run(
+            ["powershell", "-Command", "Get-ScheduledTask -TaskName 'MediaRiver' -ErrorAction Stop"],
+            capture_output=True, timeout=5,
+        )
+        return result.returncode == 0
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return False
+
+
+def _set_startup_task(enable: bool) -> None:
+    """Register or unregister the Windows startup scheduled task."""
+    import sys
+    if sys.platform != "win32":
+        return
+
+    if not enable:
+        subprocess.run(
+            ["powershell", "-Command", "Unregister-ScheduledTask -TaskName 'MediaRiver' -Confirm:$false -ErrorAction SilentlyContinue"],
+            capture_output=True, timeout=10,
+        )
+        return
+
+    # Find the repo root and scripts
+    repo_dir = Path(__file__).resolve().parent.parent
+    register_script = repo_dir / "installer" / "register-startup.ps1"
+    if register_script.exists():
+        subprocess.run(
+            ["powershell", "-File", str(register_script)],
+            capture_output=True, timeout=15,
+        )
+    else:
+        # Fallback: inline registration
+        pythonw = str(repo_dir / ".venv" / "Scripts" / "pythonw.exe")
+        tray_script = str(repo_dir / "src" / "desktop" / "tray.py")
+        ps_cmd = (
+            f"$a = New-ScheduledTaskAction -Execute '{pythonw}' -Argument '{tray_script}' -WorkingDirectory '{repo_dir}';"
+            f"$t = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME; $t.Delay = 'PT30S';"
+            f"$s = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit 0;"
+            f"Register-ScheduledTask -TaskName 'MediaRiver' -Action $a -Trigger $t -Settings $s -Force | Out-Null"
+        )
+        subprocess.run(["powershell", "-Command", ps_cmd], capture_output=True, timeout=15)
+
+
 def _get_db_stats(config: AppConfig) -> dict:
     """Query processed file stats. Returns zeros if DB is unavailable."""
     stats = {"total": 0, "done": 0, "failed": 0, "pending": 0}
@@ -179,12 +228,14 @@ def create_app(config: AppConfig, service: EngineService, updater: Updater) -> F
         update_status = None
         with contextlib.suppress(Exception):
             update_status = updater.check()
+        startup_enabled = _check_startup_task()
         return templates.TemplateResponse(request, "settings.html", {
             "page": "settings",
             "config": config,
             "env_json": json.dumps(config.env, indent=2),
             "current_version": current_version,
             "update_status": update_status,
+            "startup_enabled": startup_enabled,
         })
 
     # ── API routes ─────────────────────────────────────────────────────
@@ -213,6 +264,22 @@ def create_app(config: AppConfig, service: EngineService, updater: Updater) -> F
     async def api_update_apply():
         success = updater.apply()
         return {"ok": success}
+
+    @app.post("/api/startup/enable", response_class=HTMLResponse)
+    async def api_startup_enable():
+        _set_startup_task(enable=True)
+        return (
+            '<p class="text-sm"><span class="badge badge-done">Enabled</span> MediaRiver starts automatically 30s after logon</p>'
+            '<button class="btn" hx-post="/api/startup/disable" hx-target="#startup-status" hx-swap="innerHTML">Disable Startup</button>'
+        )
+
+    @app.post("/api/startup/disable", response_class=HTMLResponse)
+    async def api_startup_disable():
+        _set_startup_task(enable=False)
+        return (
+            '<p class="text-sm"><span class="badge badge-failed">Disabled</span> MediaRiver does not start on Windows boot</p>'
+            '<button class="btn btn-accent" hx-post="/api/startup/enable" hx-target="#startup-status" hx-swap="innerHTML">Enable Startup</button>'
+        )
 
     @app.post("/api/settings")
     async def api_settings(

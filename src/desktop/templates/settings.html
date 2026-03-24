@@ -56,6 +56,19 @@
 </div>
 
 <div class="card mt-4">
+    <h2 class="card-title">Windows Startup</h2>
+    <div id="startup-status">
+        {% if startup_enabled %}
+        <p class="text-sm"><span class="badge badge-done">Enabled</span> MediaRiver starts automatically 30s after logon</p>
+        <button class="btn" hx-post="/api/startup/disable" hx-target="#startup-status" hx-swap="innerHTML">Disable Startup</button>
+        {% else %}
+        <p class="text-sm"><span class="badge badge-failed">Disabled</span> MediaRiver does not start on Windows boot</p>
+        <button class="btn btn-accent" hx-post="/api/startup/enable" hx-target="#startup-status" hx-swap="innerHTML">Enable Startup</button>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card mt-4">
     <h2 class="card-title">Engine Control</h2>
     <button class="btn btn-accent" hx-post="/api/server/restart" hx-swap="none">Restart Engine</button>
 </div>

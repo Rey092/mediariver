@@ -1,6 +1,6 @@
 [project]
 name = "mediariver"
-version = "0.9.3"
+version = "0.9.4"
 description = "Spec-driven media pipeline CLI"
 requires-python = ">=3.12"
 license = { text = "MIT" }

@@ -1,6 +1,79 @@
 # CHANGELOG
 
 
+## v0.9.4 (2026-03-24)
+
+### Bug Fixes
+
+- Run minio via docker run instead of services block
+  ([`6154776`](https://github.com/Rey092/mediariver/commit/6154776c5556e7e77d51968265021b0215c3d384))
+
+GitHub Actions services don't support container commands, so minio/minio just printed help and
+  exited. Using docker run allows passing `server /data`.
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
+- Skip desktop tests when fastapi not installed, lint fixes
+  ([`ca86fed`](https://github.com/Rey092/mediariver/commit/ca86fedb8a0a7c11f8c9efaf40c268b8f8ecf232))
+
+The desktop server tests import fastapi which is in the optional `desktop` extras, not in `dev`. Use
+  pytest.importorskip to gracefully skip when not available.
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
+- Use bitnami/minio image for integration tests
+  ([`1e7cab2`](https://github.com/Rey092/mediariver/commit/1e7cab28f4d596d3bbc96031b2ea249db280c740))
+
+The minio/minio image requires `server /data` command arg which GitHub Actions services don't
+  support. bitnami/minio auto-starts the server.
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
+- Verify nvenc GPU availability with trial encode instead of string check
+  ([`bafb749`](https://github.com/Rey092/mediariver/commit/bafb7499f85868e7b3b6d71a01aba90782912c36))
+
+Checking ffmpeg's encoder list for "h264_nvenc" is insufficient — the encoder may be compiled in but
+  no GPU is present (e.g. CI runners). Now does a real trial encode to confirm the GPU actually
+  works.
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
+### Chores
+
+- Update gitignore
+  ([`987b26a`](https://github.com/Rey092/mediariver/commit/987b26a2b2dacda1d3ae0bee418aba86563b2e2b))
+
+- Update gitignore
+  ([`ec6bb2e`](https://github.com/Rey092/mediariver/commit/ec6bb2eedb5c617fc64c6c76d8c794c3f432aa4a))
+
+- Update gitignore
+  ([`4a662b8`](https://github.com/Rey092/mediariver/commit/4a662b8f824eec4731c6da68a005f593b642341b))
+
+### Continuous Integration
+
+- Add develop branch and workflow_dispatch trigger to integration tests
+  ([`7ea04bf`](https://github.com/Rey092/mediariver/commit/7ea04bf27c333cdb1153525d2b36726a20233b3c))
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
+### Documentation
+
+- Add AI subtitle generation & translation design spec
+  ([`7081891`](https://github.com/Rey092/mediariver/commit/7081891bd429576c332aa0dc3a6ad6727c99572c))
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
+- Add AI subtitles implementation plan
+  ([`9488386`](https://github.com/Rey092/mediariver/commit/9488386a5a6a22e2ba8d7bc39f834ce5a9f014a7))
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
+- Address spec review findings - provider lifecycle, error handling, batching
+  ([`7446ded`](https://github.com/Rey092/mediariver/commit/7446dedc114e0307efe87f039f238cb772da8eb8))
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
+
 ## v0.9.3 (2026-03-24)
 
 ### Bug Fixes
@@ -12,6 +85,11 @@ Previously is_known() skipped all files in the DB regardless of status. Now only
   are skipped — pending and failed get reprocessed.
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
+### Chores
+
+- Update gitignore
+  ([`54fd57d`](https://github.com/Rey092/mediariver/commit/54fd57d4d2cb3298f702631e6f889903ad27f81d))
 
 
 ## v0.9.2 (2026-03-24)

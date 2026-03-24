@@ -1,6 +1,21 @@
 # CHANGELOG
 
 
+## v0.10.0 (2026-03-24)
+
+### Features
+
+- Recursive S3 polling, PostgreSQL support, GPU upscaler in image
+  ([`31bff95`](https://github.com/Rey092/mediariver/commit/31bff95c7dee57da8bfa6d54aeb475ccd2e7d641))
+
+- Poller now walks subdirectories recursively (supports nested S3 prefixes) - Add psycopg2-binary
+  optional dep for PostgreSQL state backend - Guard SQLite-specific migration when using non-SQLite
+  engines - GPU Dockerfile: install realesrgan-ncnn-vulkan, imagemagick, libpq - Upscale action uses
+  strategy=auto (local binary first, docker fallback)
+
+Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
+
+
 ## v0.9.4 (2026-03-24)
 
 ### Bug Fixes

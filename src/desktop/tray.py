@@ -82,7 +82,10 @@ def main() -> None:
     app = create_app(config, service, updater)
 
     def run_server():
-        uvicorn.run(app, host="127.0.0.1", port=config.port, log_level="warning")
+        try:
+            uvicorn.run(app, host="127.0.0.1", port=config.port, log_level="warning")
+        except Exception as e:
+            log.error("Server thread crashed: %s", e, exc_info=True)
 
     server_thread = threading.Thread(target=run_server, daemon=True)
     server_thread.start()

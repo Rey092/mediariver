@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Logs - MediaRiver{% endblock %}
+{% block content %}
+<h1 class="page-title">Logs</h1>
+
+<div class="mb-4">
+    <button class="btn" onclick="filterLogs('')">All</button>
+    <button class="btn" onclick="filterLogs('info')">Info</button>
+    <button class="btn" onclick="filterLogs('warning')">Warning</button>
+    <button class="btn" onclick="filterLogs('error')">Error</button>
+</div>
+
+<div class="log-viewer" id="log-viewer">
+    <div id="log-lines">
+        {% for line in initial_logs %}
+        <div>{{ line }}</div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+(function() {
+    const source = new EventSource('/api/logs/stream');
+    source.onmessage = function(e) {
+        const container = document.getElementById('log-lines');
+        const div = document.createElement('div');
+        div.textContent = e.data;
+        container.appendChild(div);
+        const viewer = document.getElementById('log-viewer');
+        viewer.scrollTop = viewer.scrollHeight;
+    };
+})();
+
+function filterLogs(level) {
+    const lines = document.querySelectorAll('#log-lines div');
+    lines.forEach(function(el) {
+        if (!level) {
+            el.style.display = '';
+        } else {
+            el.style.display = el.textContent.toLowerCase().indexOf(level) !== -1 ? '' : 'none';
+        }
+    });
+}
+</script>
+{% endblock %}

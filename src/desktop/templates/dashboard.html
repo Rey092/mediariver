@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - MediaRiver{% endblock %}
+{% block content %}
+<h1 class="page-title">Dashboard</h1>
+
+<div id="status-section" hx-get="/api/status" hx-trigger="every 5s" hx-swap="innerHTML">
+    {% include "partials/status.html" %}
+</div>
+
+<h2 class="card-title mt-4">GPU Encoders</h2>
+<div class="card">
+    {% if gpu_encoders %}
+    <ul>
+        {% for enc in gpu_encoders %}
+        <li>{{ enc }}</li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-muted">CPU only — no hardware encoders detected.</p>
+    {% endif %}
+</div>
+
+<h2 class="card-title mt-4">Processing Stats</h2>
+<div class="card-grid">
+    <div class="card">
+        <div class="stat-value">{{ stats.total }}</div>
+        <div class="stat-label">Total Files</div>
+    </div>
+    <div class="card">
+        <div class="stat-value">{{ stats.done }}</div>
+        <div class="stat-label">Completed</div>
+    </div>
+    <div class="card">
+        <div class="stat-value">{{ stats.failed }}</div>
+        <div class="stat-label">Failed</div>
+    </div>
+    <div class="card">
+        <div class="stat-value">{{ stats.pending }}</div>
+        <div class="stat-label">Pending</div>
+    </div>
+</div>
+{% endblock %}

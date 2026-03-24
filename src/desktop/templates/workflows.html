@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Workflows - MediaRiver{% endblock %}
+{% block content %}
+<h1 class="page-title">Workflows</h1>
+
+{% if workflows %}
+{% for wf in workflows %}
+<div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+            <strong>{{ wf.name }}</strong>
+            <span class="text-sm text-muted" style="margin-left:12px;">{{ wf.path }}</span>
+        </div>
+        {% if wf.error %}
+        <span class="badge badge-failed">Error</span>
+        {% else %}
+        <span class="badge badge-done">OK</span>
+        {% endif %}
+    </div>
+    <button class="btn mt-4 text-sm" onclick="let el=document.getElementById('yaml-{{ loop.index }}'); el.classList.toggle('open');">
+        Show YAML
+    </button>
+    <div class="workflow-yaml" id="yaml-{{ loop.index }}">{{ wf.content }}</div>
+    {% if wf.error %}
+    <p class="text-sm" style="color:#fca5a5; margin-top:8px;">{{ wf.error }}</p>
+    {% endif %}
+</div>
+{% endfor %}
+{% else %}
+<div class="card text-muted">No workflow files found in {{ workflows_dir }}.</div>
+{% endif %}
+{% endblock %}

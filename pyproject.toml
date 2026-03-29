@@ -24,6 +24,13 @@ dependencies = [
 ftp = []
 sftp = ["fs.sshfs>=1.0"]
 postgres = ["psycopg2-binary>=2.9"]
+cuda = [
+    "torch>=2.0",
+    "realesrgan>=0.3",
+    "basicsr>=1.4",
+    "Pillow>=10.0",
+    "numpy>=1.24",
+]
 desktop = [
     "pystray>=0.19",
     "Pillow>=10.0",

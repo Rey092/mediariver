@@ -39,7 +39,7 @@ class ImagePixelCheckAction(BaseAction):
         if result.returncode != 0:
             raise RuntimeError(result.stderr)
 
-        pixel_count = int(result.stdout.strip())
+        pixel_count = int(float(result.stdout.strip()))
 
         if params.min_pixels is not None and pixel_count < params.min_pixels:
             raise RuntimeError(f"pixel count {pixel_count} is below minimum {params.min_pixels}")

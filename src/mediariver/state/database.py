@@ -25,6 +25,7 @@ def create_db_engine(database_url: str | None = None) -> Engine:
 def create_tables(engine: Engine) -> None:
     """Create tables if missing, and migrate schema if needed."""
     _migrate_unique_constraint(engine)
+    _migrate_add_etag_column(engine)
     Base.metadata.create_all(engine)
 
 
@@ -82,6 +83,22 @@ def _migrate_unique_constraint(engine: Engine) -> None:
         """)
         )
         conn.execute(text("DROP TABLE _processed_files_old"))
+
+
+def _migrate_add_etag_column(engine: Engine) -> None:
+    """Add etag column to processed_files if missing."""
+    from sqlalchemy import inspect, text
+
+    insp = inspect(engine)
+    if "processed_files" not in insp.get_table_names():
+        return
+
+    columns = {c["name"] for c in insp.get_columns("processed_files")}
+    if "etag" in columns:
+        return
+
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE processed_files ADD COLUMN etag VARCHAR"))
 
 
 def get_session(engine: Engine) -> Session:

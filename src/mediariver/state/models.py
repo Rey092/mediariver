@@ -22,6 +22,7 @@ class ProcessedFile(Base):
     file_path: Mapped[str] = mapped_column(String, nullable=False)
     file_hash: Mapped[str] = mapped_column(String, nullable=False)
     file_size: Mapped[int] = mapped_column(Integer, nullable=False)
+    etag: Mapped[str | None] = mapped_column(String, nullable=True)
     status: Mapped[str] = mapped_column(String, nullable=False, default="pending")
     current_step: Mapped[str | None] = mapped_column(String, nullable=True)
     step_results: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)

@@ -37,7 +37,7 @@ class ImageInfoAction(BaseAction):
         height = int(parts[1])
         fmt = parts[2]
         colorspace = parts[3]
-        pixel_count = int(parts[4])
+        pixel_count = int(float(parts[4]))
 
         if width > height:
             orientation = "landscape"

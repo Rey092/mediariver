@@ -38,9 +38,10 @@ class PipelineRunner:
         file_path: str,
         file_hash: str,
         resume_from: str | None = None,
+        original_path: str | None = None,
     ) -> dict[str, Any]:
         """Run all flow steps for a single file."""
-        context = build_file_context(file_path, file_hash)
+        context = build_file_context(file_path, file_hash, original_path=original_path)
         context["_connections"] = self.connections
         context["_work_dir"] = self.work_dir
         step_results: dict[str, Any] = {}

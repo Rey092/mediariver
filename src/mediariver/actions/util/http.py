@@ -37,6 +37,7 @@ class HttpPostAction(BaseAction):
             headers=params.headers,
             timeout=params.timeout,
         )
+        response.raise_for_status()
         return ActionResult(
             status="done",
             extras={"status_code": response.status_code, "response": response.text},
@@ -63,6 +64,7 @@ class HttpGetAction(BaseAction):
         resolved_input: str | None = None,
     ) -> ActionResult:
         response = httpx.get(params.url, headers=params.headers, timeout=params.timeout)
+        response.raise_for_status()
         if params.save_to:
             with open(params.save_to, "wb") as f:
                 f.write(response.content)

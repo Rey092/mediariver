@@ -81,17 +81,32 @@ def run(
 
                 session = get_session(engine)
 
-                def is_known(conn: str, path: str) -> bool:
+                def is_known(conn: str, path: str, file_size: int, etag: str) -> bool:
                     result = session.query(ProcessedFile).filter_by(workflow_name=spec.name, file_path=path).first()
                     if not result:
                         return False
-                    # Skip done and running files; pending and failed should be picked up
-                    return result.status in ("done", "running")
+                    # Pending and failed should be picked up
+                    if result.status in ("pending", "failed"):
+                        return False
+                    # Running files are in progress — skip
+                    if result.status == "running":
+                        return True
+                    # Status is "done" — check if file content changed
+                    if result.file_size != file_size or result.etag != etag:
+                        log.info(
+                            "file_changed_detected",
+                            workflow=spec.name,
+                            file=path,
+                            old_size=result.file_size,
+                            new_size=file_size,
+                            old_etag=result.etag,
+                            new_etag=etag,
+                        )
+                        return False  # treat as new — will be reprocessed
+                    return True
 
-                def on_new_file(path: str, file_hash: str, file_size: int) -> None:
+                def on_new_file(path: str, file_hash: str, file_size: int, etag: str) -> None:
                     existing = session.query(ProcessedFile).filter_by(workflow_name=spec.name, file_path=path).first()
-                    if existing and existing.status == "done":
-                        return
 
                     if not existing:
                         pf = ProcessedFile(
@@ -99,6 +114,7 @@ def run(
                             file_path=path,
                             file_hash=file_hash,
                             file_size=file_size,
+                            etag=etag,
                             status="pending",
                         )
                         session.add(pf)
@@ -107,16 +123,24 @@ def run(
 
                     existing.status = "running"
                     existing.attempts += 1
+                    existing.file_hash = file_hash
+                    existing.file_size = file_size
+                    existing.etag = etag
                     session.commit()
 
                     work_dir = work_base / file_hash
                     work_dir.mkdir(parents=True, exist_ok=True)
 
-                    # Resolve to absolute system path for local FS
+                    # Resolve to absolute system path; download from S3 if needed
                     try:
                         abs_path = watch_fs.getsyspath(path)
                     except Exception:
-                        abs_path = path
+                        # S3 source: download to work_dir before running pipeline
+                        local_path = work_dir / Path(path).name
+                        key = watch_fs._path_to_key(path)
+                        obj = watch_fs.s3.Object(watch_fs._bucket_name, key)
+                        obj.download_file(str(local_path))
+                        abs_path = str(local_path)
 
                     runner = PipelineRunner(
                         spec,
@@ -124,7 +148,7 @@ def run(
                         connections=connections,
                         work_dir=str(work_dir),
                     )
-                    result = runner.run_file(abs_path, file_hash)
+                    result = runner.run_file(abs_path, file_hash, original_path=path)
 
                     existing.status = result["status"]
                     existing.step_results = result.get("step_results", {})

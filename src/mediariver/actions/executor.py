@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 from dataclasses import dataclass
@@ -12,6 +13,19 @@ import structlog
 from mediariver.docker.manager import DockerManager
 
 log = structlog.get_logger()
+
+# ImageMagick sub-commands that conflict with system binaries on Windows.
+# On Windows, `convert` is a disk conversion tool and `identify` doesn't exist.
+# Use `magick <subcommand>` instead when `magick` is available.
+_MAGICK_SUBCOMMANDS = {"convert", "identify", "mogrify", "composite", "montage"}
+
+
+def _resolve_binary(binary: str) -> list[str]:
+    """Return the command list for a binary, handling ImageMagick on Windows."""
+    if binary in _MAGICK_SUBCOMMANDS and os.name == "nt":
+        if shutil.which("magick"):
+            return ["magick", binary]
+    return [binary]
 
 
 @dataclass
@@ -36,14 +50,15 @@ class CommandExecutor:
         strategy: Literal["auto", "local", "docker"] = "auto",
     ) -> CommandResult:
         use_docker = False
+        cmd = _resolve_binary(binary)
 
         if strategy == "docker":
             use_docker = True
         elif strategy == "local":
-            if not shutil.which(binary):
-                raise FileNotFoundError(f"Binary '{binary}' not found locally")
+            if not shutil.which(cmd[0]):
+                raise FileNotFoundError(f"Binary '{cmd[0]}' not found locally")
         elif strategy == "auto":
-            use_docker = shutil.which(binary) is None
+            use_docker = shutil.which(cmd[0]) is None
 
         if use_docker:
             log.info("executor_docker", binary=binary, image=docker_image)
@@ -56,9 +71,9 @@ class CommandExecutor:
                 env=env,
             )
         else:
-            log.info("executor_local", binary=binary)
+            log.info("executor_local", binary=cmd[0])
             proc = subprocess.run(
-                [binary, *args],
+                [*cmd, *args],
                 capture_output=True,
                 text=True,
             )
